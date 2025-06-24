@@ -499,10 +499,10 @@ model Supplier {
   tax_id                String?
   organization_group_id String?
   company_id            String?
+  external_id           String?
   companies             Company[]                @relation("companies__suppliers")
   organizations         OrganizationOnSupplier[] @relation("organization_on_suppliers__suppliers")
   organization_group    OrganizationGroup?       @relation("suppliers__organization_groups", fields: [organization_group_id], references: [id], onDelete: Cascade)
-  external_id           String?
 
   @@unique([supplier_id, organization_group_id, external_id])
   @@index([name])
@@ -578,21 +578,20 @@ model InvoicePresence {
 }
 
 model SupplierBankAddresses {
-  id              String   @id(map: "pk_supplier_bank_addresses") @default(dbgenerated("concat('sba_', \"left\"(translate(encode(gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  id              String        @id(map: "pk_supplier_bank_addresses") @default(dbgenerated("concat('sba_', \"left\"(translate(encode(gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
   tenant_id       String
   supplier_id     String
   supplier_name   String?
   bank_name       String?
   iban            String?
   bic             String?
-  is_default      Boolean? @default(false)
-  blocked_for_use Boolean? @default(false)
-  created_at      DateTime @default(now()) @db.Timestamp(6)
-  updated_at      DateTime @default(now()) @db.Timestamp(6)
+  is_default      Boolean?      @default(false)
+  blocked_for_use Boolean?      @default(false)
+  created_at      DateTime      @default(now()) @db.Timestamp(6)
+  updated_at      DateTime      @default(now()) @db.Timestamp(6)
   way_id          String?
   address_id      String?
   external_id     String?
-
   organization_id String?
   organization    Organization? @relation("supplier_bank_addresses__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
 
