@@ -7,16 +7,15 @@ export interface IfsTableSynchronizationRequest {
 }
 
 export interface IfsTableSynchronizationResponse {
-  status: string;
-  success?: boolean;
-  error_type?: string;
+  status: number;
+  message: string;
+  success: boolean;
 }
 
 export interface IfsTableSynchronizationResult {
   status: number;
   message: string;
-  success?: boolean;
-  error_type?: string;
+  success: boolean;
 }
 
 export interface IfsSupplierInformationData {
