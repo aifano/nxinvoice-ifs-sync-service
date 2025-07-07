@@ -32,7 +32,7 @@ const jsonParsingErrorHandler: express.ErrorRequestHandler = (jsonParsingError, 
 app.use(jsonParsingErrorHandler);
 app.use(requireJwt);
 
-app.post('/ifs-sync/v1/:table', (httpRequest, httpResponse) =>
+app.post('/:table', (httpRequest, httpResponse) =>
     ifsSyncController.handleSynchronizationRequest(httpRequest, httpResponse)
 );
 app.get('/health', (_, httpResponse) => {
