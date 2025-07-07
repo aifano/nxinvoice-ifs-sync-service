@@ -130,7 +130,7 @@ model Document {
   sender_email_address     String?
   object_path              String?
   document_receivement_id  String?
-  document_processing_jobs DocumentProcessingJobs[]
+  document_processing_jobs DocumentProcessingJob[]
   document_receivement     DocumentReceivement?     @relation("documents__document_receivements", fields: [document_receivement_id], references: [id], onDelete: Cascade)
   organization             Organization?            @relation("documents__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
   invoices                 Invoice[]                @relation("invoices__documents")
@@ -390,7 +390,7 @@ model Organization {
   default_organization_tenant    OrganizationTenant?      @relation("organizations__organization_tenants", fields: [default_organization_tenant_id], references: [id], onDelete: Cascade)
   organization_group             OrganizationGroup?       @relation("organizations__organization_groups", fields: [organization_group_id], references: [id], onDelete: Cascade)
   suppliers                      OrganizationOnSupplier[] @relation("organization_on_suppliers__organizations")
-  supplier_bank_addresses        SupplierBankAddresses[]  @relation("supplier_bank_addresses__organizations")
+  supplier_bank_addresses        SupplierBankAddresse[]  @relation("supplier_bank_addresses__organizations")
 
   @@map("organizations")
 }
@@ -577,7 +577,7 @@ model InvoicePresence {
   @@map("invoice_presence")
 }
 
-model SupplierBankAddresses {
+model SupplierBankAddresse {
   id              String        @id(map: "pk_supplier_bank_addresses") @default(dbgenerated("concat('sba_', \"left\"(translate(encode(gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
   tenant_id       String
   supplier_id     String
@@ -602,7 +602,7 @@ model SupplierBankAddresses {
   @@map("supplier_bank_addresses")
 }
 
-model DocumentProcessingJobs {
+model DocumentProcessingJob {
   id                String            @id @default(dbgenerated("concat('dpj_', \"left\"(translate(encode(gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
   created_at        DateTime          @default(now())
   updated_at        DateTime          @default(now())

@@ -170,7 +170,7 @@ describe('IfsTableSynchronizationService', () => {
         success: true
       });
 
-      expect(mockPrismaClient.supplierBankAddresses.create).toHaveBeenCalled();
+      expect(mockPrismaClient.supplierBankAddresse.create).toHaveBeenCalled();
     });
   });
 

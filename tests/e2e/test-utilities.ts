@@ -109,7 +109,7 @@ export class IfsE2ETestDatabaseHelper {
   async cleanupTestData(): Promise<void> {
     try {
       // Clean up all test data from both tables
-      await this.prisma.supplierBankAddresses.deleteMany({
+      await this.prisma.supplierBankAddresse.deleteMany({
         where: {
           organization_id: this.testOrganizationId
         }
@@ -142,7 +142,7 @@ export class IfsE2ETestDatabaseHelper {
 
   async verifyPaymentAddressExists(externalId: string): Promise<boolean> {
     try {
-      const paymentAddress = await this.prisma.supplierBankAddresses.findFirst({
+      const paymentAddress = await this.prisma.supplierBankAddresse.findFirst({
         where: {
           external_id: externalId,
           organization_id: this.testOrganizationId
@@ -171,7 +171,7 @@ export class IfsE2ETestDatabaseHelper {
 
   async getPaymentAddressByExternalId(externalId: string) {
     try {
-      return await this.prisma.supplierBankAddresses.findFirst({
+      return await this.prisma.supplierBankAddresse.findFirst({
         where: {
           external_id: externalId,
           organization_id: this.testOrganizationId

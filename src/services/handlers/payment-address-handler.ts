@@ -31,7 +31,7 @@ export class PaymentAddressHandler implements IfsTableHandler {
     let result: IfsTableSynchronizationResult;
 
     try {
-      await this.database.supplierBankAddresses.create({
+      await this.database.supplierBankAddresse.create({
         data: {
           tenant_id: organizationId,
           supplier_id: data.identity || '',
@@ -85,7 +85,7 @@ export class PaymentAddressHandler implements IfsTableHandler {
     let result: IfsTableSynchronizationResult;
 
     try {
-      const updateResult = await this.database.supplierBankAddresses.updateMany({
+      const updateResult = await this.database.supplierBankAddresse.updateMany({
         where: {
           tenant_id: organizationId,
           external_id: data.rowkey,
@@ -134,7 +134,7 @@ export class PaymentAddressHandler implements IfsTableHandler {
     let result: IfsTableSynchronizationResult;
 
     try {
-      const createResult = await this.database.supplierBankAddresses.createMany({
+      const createResult = await this.database.supplierBankAddresse.createMany({
         data: {
           tenant_id: organizationId,
           supplier_id: data.identity || '',
@@ -184,7 +184,7 @@ export class PaymentAddressHandler implements IfsTableHandler {
     let result: IfsTableSynchronizationResult;
 
     try {
-      const deleteResult = await this.database.supplierBankAddresses.deleteMany({
+      const deleteResult = await this.database.supplierBankAddresse.deleteMany({
         where: {
           tenant_id: organizationId,
           external_id: data.rowkey,

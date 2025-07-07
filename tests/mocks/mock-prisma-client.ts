@@ -7,7 +7,7 @@ export const createMockPrismaClient = () => ({
     findMany: jest.fn().mockResolvedValue([]),
     findUnique: jest.fn(),
   },
-  supplierBankAddresses: {
+  supplierBankAddresse: {
     create: jest.fn(),
     createMany: jest.fn().mockResolvedValue({ count: 1 }),
     updateMany: jest.fn().mockResolvedValue({ count: 1 }),

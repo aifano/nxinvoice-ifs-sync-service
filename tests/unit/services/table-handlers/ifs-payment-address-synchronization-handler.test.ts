@@ -29,7 +29,7 @@ describe('IfsPaymentAddressSynchronizationHandler', () => {
 
   describe('handleTableSynchronization - insert action', () => {
     it('should successfully insert new payment address record with all fields', async () => {
-      mockPrismaClient.supplierBankAddresses.create.mockResolvedValue({
+      mockPrismaClient.supplierBankAddresse.create.mockResolvedValue({
         id: 'generated_payment_address_id',
       });
 
@@ -45,7 +45,7 @@ describe('IfsPaymentAddressSynchronizationHandler', () => {
         success: true
       });
 
-      expect(mockPrismaClient.supplierBankAddresses.create).toHaveBeenCalledWith({
+      expect(mockPrismaClient.supplierBankAddresse.create).toHaveBeenCalledWith({
         data: {
           tenant_id: VALID_PAYMENT_ADDRESS_DATA.company,
           supplier_id: VALID_PAYMENT_ADDRESS_DATA.identity,
@@ -70,7 +70,7 @@ describe('IfsPaymentAddressSynchronizationHandler', () => {
 
       await handler.handleTableSynchronization('insert', TEST_ORGANIZATION_ID, testData);
 
-      const createCall = mockPrismaClient.supplierBankAddresses.create.mock.calls[0][0];
+      const createCall = mockPrismaClient.supplierBankAddresse.create.mock.calls[0][0];
       expect(createCall.data.is_default).toBe(false);
       expect(createCall.data.blocked_for_use).toBe(true);
     });
@@ -78,7 +78,7 @@ describe('IfsPaymentAddressSynchronizationHandler', () => {
 
   describe('handleTableSynchronization - update action', () => {
     it('should successfully update existing payment address record', async () => {
-      mockPrismaClient.supplierBankAddresses.updateMany.mockResolvedValue({ count: 1 });
+      mockPrismaClient.supplierBankAddresse.updateMany.mockResolvedValue({ count: 1 });
 
       const result = await handler.handleTableSynchronization(
         'update',
@@ -92,7 +92,7 @@ describe('IfsPaymentAddressSynchronizationHandler', () => {
         success: true
       });
 
-      expect(mockPrismaClient.supplierBankAddresses.updateMany).toHaveBeenCalledWith({
+      expect(mockPrismaClient.supplierBankAddresse.updateMany).toHaveBeenCalledWith({
         where: {
           external_id: VALID_PAYMENT_ADDRESS_DATA.rowkey,
           organization_id: TEST_ORGANIZATION_ID,
@@ -115,7 +115,7 @@ describe('IfsPaymentAddressSynchronizationHandler', () => {
 
   describe('handleTableSynchronization - upsert action', () => {
     it('should insert when record does not exist (createMany count > 0)', async () => {
-      mockPrismaClient.supplierBankAddresses.createMany.mockResolvedValue({ count: 1 });
+      mockPrismaClient.supplierBankAddresse.createMany.mockResolvedValue({ count: 1 });
 
       const result = await handler.handleTableSynchronization(
         'upsert',
@@ -129,7 +129,7 @@ describe('IfsPaymentAddressSynchronizationHandler', () => {
         success: true
       });
 
-      expect(mockPrismaClient.supplierBankAddresses.createMany).toHaveBeenCalledWith({
+      expect(mockPrismaClient.supplierBankAddresse.createMany).toHaveBeenCalledWith({
         data: expect.objectContaining({
           external_id: VALID_PAYMENT_ADDRESS_DATA.rowkey,
           organization_id: TEST_ORGANIZATION_ID,
@@ -139,8 +139,8 @@ describe('IfsPaymentAddressSynchronizationHandler', () => {
     });
 
     it('should update when record exists (createMany count = 0)', async () => {
-      mockPrismaClient.supplierBankAddresses.createMany.mockResolvedValue({ count: 0 });
-      mockPrismaClient.supplierBankAddresses.updateMany.mockResolvedValue({ count: 1 });
+      mockPrismaClient.supplierBankAddresse.createMany.mockResolvedValue({ count: 0 });
+      mockPrismaClient.supplierBankAddresse.updateMany.mockResolvedValue({ count: 1 });
 
       const result = await handler.handleTableSynchronization(
         'upsert',
@@ -154,14 +154,14 @@ describe('IfsPaymentAddressSynchronizationHandler', () => {
         success: true
       });
 
-      expect(mockPrismaClient.supplierBankAddresses.createMany).toHaveBeenCalled();
-      expect(mockPrismaClient.supplierBankAddresses.updateMany).toHaveBeenCalled();
+      expect(mockPrismaClient.supplierBankAddresse.createMany).toHaveBeenCalled();
+      expect(mockPrismaClient.supplierBankAddresse.updateMany).toHaveBeenCalled();
     });
   });
 
   describe('handleTableSynchronization - delete action', () => {
     it('should successfully delete payment address record', async () => {
-      mockPrismaClient.supplierBankAddresses.deleteMany.mockResolvedValue({ count: 1 });
+      mockPrismaClient.supplierBankAddresse.deleteMany.mockResolvedValue({ count: 1 });
 
       const result = await handler.handleTableSynchronization(
         'delete',
@@ -175,7 +175,7 @@ describe('IfsPaymentAddressSynchronizationHandler', () => {
         success: true
       });
 
-      expect(mockPrismaClient.supplierBankAddresses.deleteMany).toHaveBeenCalledWith({
+      expect(mockPrismaClient.supplierBankAddresse.deleteMany).toHaveBeenCalledWith({
         where: {
           external_id: VALID_PAYMENT_ADDRESS_DATA.rowkey,
           organization_id: TEST_ORGANIZATION_ID,
@@ -192,7 +192,7 @@ describe('IfsPaymentAddressSynchronizationHandler', () => {
         VALID_PAYMENT_ADDRESS_DATA
       );
 
-      const createCall = mockPrismaClient.supplierBankAddresses.create.mock.calls[0][0];
+      const createCall = mockPrismaClient.supplierBankAddresse.create.mock.calls[0][0];
       const mappedData = createCall.data;
 
       expect(mappedData).toEqual({
@@ -220,7 +220,7 @@ describe('IfsPaymentAddressSynchronizationHandler', () => {
 
       await handler.handleTableSynchronization('insert', TEST_ORGANIZATION_ID, minimalData);
 
-      const createCall = mockPrismaClient.supplierBankAddresses.create.mock.calls[0][0];
+      const createCall = mockPrismaClient.supplierBankAddresse.create.mock.calls[0][0];
       const mappedData = createCall.data;
 
       expect(mappedData.bank_name).toBeUndefined();
@@ -235,7 +235,7 @@ describe('IfsPaymentAddressSynchronizationHandler', () => {
   describe('error handling', () => {
     it('should propagate database errors', async () => {
       const databaseError = new Error('Database constraint violation');
-      mockPrismaClient.supplierBankAddresses.create.mockRejectedValue(databaseError);
+      mockPrismaClient.supplierBankAddresse.create.mockRejectedValue(databaseError);
 
       await expect(
         handler.handleTableSynchronization(
