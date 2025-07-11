@@ -16,11 +16,7 @@ export class SupplierDocumentTaxHandler implements IfsTableHandler {
       case 'upsert':
         return this.upsertSupplierTaxInfo(organizationId, data);
       case 'delete':
-        return {
-          status: 200,
-          message: 'Supplier tax information deletion not supported - operation skipped',
-          success: true
-        };
+        return this.deleteSupplierTaxInfo(organizationId, data);
       default:
         return {
           status: 404,
@@ -35,7 +31,7 @@ export class SupplierDocumentTaxHandler implements IfsTableHandler {
     let result: IfsTableSynchronizationResult;
 
     try {
-      // Update supplier with tax information
+      // Für Insert: Erst versuchen zu aktualisieren, falls nicht vorhanden, dann Supplier erstellen
       const updateResult = await this.database.supplier.updateMany({
         where: {
           organization_group_id: organizationId,
@@ -48,11 +44,38 @@ export class SupplierDocumentTaxHandler implements IfsTableHandler {
       });
 
       if (updateResult.count === 0) {
-        result = {
-          status: 404,
-          message: 'Supplier not found for tax information update',
-          success: false
-        };
+        // Supplier existiert nicht, erstelle ihn mit Tax-Informationen
+        try {
+          await this.database.supplier.create({
+            data: {
+              supplier_id: data.supplier_id || '',
+              name: data.supplier_name || data.name || '',
+              organization_group_id: organizationId,
+              external_id: data.rowkey || null,
+              vat_id: data.vat_id || null,
+              tax_id: data.tax_id || null,
+            },
+          });
+          result = {
+            status: 200,
+            message: 'Supplier created with tax information successfully',
+            success: true
+          };
+        } catch (createError: any) {
+          if (createError.code === 'P2002') {
+            result = {
+              status: 409,
+              message: 'Supplier already exists',
+              success: false
+            };
+          } else {
+            result = {
+              status: 500,
+              message: 'Failed to create supplier with tax information',
+              success: false
+            };
+          }
+        }
       } else {
         result = {
           status: 200,
@@ -70,7 +93,7 @@ export class SupplierDocumentTaxHandler implements IfsTableHandler {
       } else {
         result = {
           status: 500,
-          message: 'Failed to update supplier tax information',
+          message: 'Failed to process supplier tax information',
           success: false
         };
       }
@@ -126,6 +149,19 @@ export class SupplierDocumentTaxHandler implements IfsTableHandler {
   private async upsertSupplierTaxInfo(organizationId: string, data: any): Promise<IfsTableSynchronizationResult> {
     // For tax info, upsert is the same as update since we're updating existing supplier records
     return this.updateSupplierTaxInfo(organizationId, data);
+  }
+
+  private async deleteSupplierTaxInfo(organizationId: string, data: any): Promise<IfsTableSynchronizationResult> {
+    const sqlStatement = this.buildSql('delete', data);
+    const result: IfsTableSynchronizationResult = {
+      status: 200,
+      message: 'Supplier tax information deletion not supported - operation skipped',
+      success: true
+    };
+
+    // WICHTIG: Immer loggen - auch bei nicht unterstützten Operationen
+    this.sqlLogger.logSqlStatement(sqlStatement, result.message);
+    return result;
   }
 
   // SQL Statement Builder

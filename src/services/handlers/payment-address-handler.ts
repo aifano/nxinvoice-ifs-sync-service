@@ -33,7 +33,7 @@ export class PaymentAddressHandler implements IfsTableHandler {
     try {
       await this.database.supplierBankAddresse.create({
         data: {
-          tenant_id: organizationId,
+          tenant_id: data.company || data.tenant_id || '',
           supplier_id: data.identity || '',
           supplier_name: data.supplier_name || null,
           bank_name: data.bank_name || null,
@@ -87,7 +87,7 @@ export class PaymentAddressHandler implements IfsTableHandler {
     try {
       const updateResult = await this.database.supplierBankAddresse.updateMany({
         where: {
-          tenant_id: organizationId,
+          organization_id: organizationId,
           external_id: data.rowkey,
         },
         data: {
@@ -100,6 +100,7 @@ export class PaymentAddressHandler implements IfsTableHandler {
           blocked_for_use: data.blocked_for_use === 'TRUE',
           way_id: data.way_id || null,
           address_id: data.address_id || null,
+          organization_id: organizationId,
         },
       });
 
@@ -134,9 +135,13 @@ export class PaymentAddressHandler implements IfsTableHandler {
     let result: IfsTableSynchronizationResult;
 
     try {
-      const createResult = await this.database.supplierBankAddresse.createMany({
+      // Erst versuchen zu aktualisieren
+      const updateResult = await this.database.supplierBankAddresse.updateMany({
+        where: {
+          organization_id: organizationId,
+          external_id: data.rowkey,
+        },
         data: {
-          tenant_id: organizationId,
           supplier_id: data.identity || '',
           supplier_name: data.supplier_name || null,
           bank_name: data.bank_name || null,
@@ -145,24 +150,53 @@ export class PaymentAddressHandler implements IfsTableHandler {
           is_default: data.default_address === 'TRUE',
           blocked_for_use: data.blocked_for_use === 'TRUE',
           way_id: data.way_id || null,
-          address_id: data.address_id || null,
-          external_id: data.rowkey || null,
-          organization_id: organizationId,
+          address_id: data.address_id || null
         },
-        skipDuplicates: true,
       });
 
-      if (createResult.count === 0) {
-        await this.updatePaymentAddress(organizationId, data);
-        result = {
-          status: 200,
-          message: 'Payment address updated via upsert',
-          success: true
-        };
+      if (updateResult.count === 0) {
+        // Record existiert nicht, erstelle ihn
+        try {
+          await this.database.supplierBankAddresse.create({
+            data: {
+              tenant_id: data.company || data.tenant_id || '',
+              supplier_id: data.identity || '',
+              supplier_name: data.supplier_name || null,
+              bank_name: data.bank_name || null,
+              iban: data.account || null,
+              bic: data.bic_code || null,
+              is_default: data.default_address === 'TRUE',
+              blocked_for_use: data.blocked_for_use === 'TRUE',
+              way_id: data.way_id || null,
+              address_id: data.address_id || null,
+              external_id: data.rowkey || null,
+              organization_id: organizationId,
+            },
+          });
+          result = {
+            status: 200,
+            message: 'Payment address created via upsert',
+            success: true
+          };
+        } catch (createError: any) {
+          if (createError.code === 'P2002') {
+            result = {
+              status: 409,
+              message: 'Payment address already exists',
+              success: false
+            };
+          } else {
+            result = {
+              status: 500,
+              message: 'Failed to create payment address via upsert',
+              success: false
+            };
+          }
+        }
       } else {
         result = {
           status: 200,
-          message: 'Payment address created via upsert',
+          message: 'Payment address updated via upsert',
           success: true
         };
       }
@@ -186,7 +220,7 @@ export class PaymentAddressHandler implements IfsTableHandler {
     try {
       const deleteResult = await this.database.supplierBankAddresse.deleteMany({
         where: {
-          tenant_id: organizationId,
+          organization_id: organizationId,
           external_id: data.rowkey,
         },
       });
