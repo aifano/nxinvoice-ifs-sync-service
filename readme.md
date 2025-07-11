@@ -23,14 +23,14 @@
     <summary>Upsert</summary>
 
     ```json
-{
-    "action": "upsert",
-    "data": {
-        "supplier_id": "&NEW:SUPPLIER_ID",
-        "name": "&NEW:NAME",
-        "external_id": "&NEW:ROWKEY"
+    {
+        "action": "upsert",
+        "data": {
+            "supplier_id": "&NEW:SUPPLIER_ID",
+            "name": "&NEW:NAME",
+            "external_id": "&NEW:ROWKEY"
+        }
     }
-}
     ```
 
     </details>
@@ -57,12 +57,12 @@
     <summary>Delete</summary>
 
     ```json
-{
-    "action": "delete",
-    "data": {
-        "rowkey": "&NEW:ROWKEY"
+    {
+        "action": "delete",
+        "data": {
+            "rowkey": "&NEW:ROWKEY"
+        }
     }
-}
     ```
 
 ### supplier_document_tax_info_tab upsert
@@ -122,12 +122,12 @@
     <summary>Delete</summary>
 
     ```json
-{
-    "action": "delete",
-    "data": {
-        "rowkey": "&NEW:ROWKEY"
+    {
+        "action": "delete",
+        "data": {
+            "rowkey": "&NEW:ROWKEY"
+        }
     }
-}
     ```
 
     </details>
@@ -140,7 +140,7 @@
 * Custom-Event / Table: `PAYMENT_ADDRESS_TAB`
 * Custom-Event / Fire When: `New objects are created`, `Objects are changed`
 * Custom-Event / Fire before or afer object is changed: `After`
-* Custom-Event / Select attributes: `SUPPLIER_ID`, `VAT_NO`, `ROWKEY`
+* Custom-Event / Select attributes: `IDENTIFY`, `VAT_NO`, `ROWKEY`
 * Event-Action / Action Type: `REST Call`
 * Event-Action / Perform upon Event: `C_NXI_PAYMENTADDRESS_UPSERT`
 * Event-Action / Action Description: `This action is responsible for creating or updating a supplier's payment address information`
@@ -154,21 +154,21 @@
     <summary>Upsert</summary>
 
     ```json
-{
-    "action": "upsert",
-    "data": {
-        "identity": "&NEW:IDENTIFY",
-        "supplier_name": "",
-        "bank_name": "&NEW:DATA2",
-        "account": "&NEW:ACCOUNT",
-        "bic_code": "&NEW:DATA1",
-        "default_address": "&NEW:DEFAULT_ADDRESS",
-        "blocked_for_use": "&NEW:BLOCK_FOR_USE",
-        "way_id": "&NEW:WAY_ID",
-        "address_id": "&NEW:ADDRESS_ID",
-        "rowkey": "&NEW:ROWKEY",
+    {
+        "action": "upsert",
+        "data": {
+            "identity": "&NEW:IDENTIFY",
+            "supplier_name": "&NEW:DATA10",
+            "bank_name": "&NEW:DESCRIPTION",
+            "account": "&NEW:ACCOUNT",
+            "bic_code": "&NEW:BIC_CODE",
+            "default_address": "&NEW:DEFAULT_ADDRESS",
+            "blocked_for_use": "&NEW:BLOCKED_FOR_USE",
+            "way_id": "&NEW:WAY_ID",
+            "address_id": "&NEW:ADDRESS_ID",
+            "rowkey": "&NEW:ROWKEY",
+        }
     }
-}
     ```
 
     </details>
@@ -195,12 +195,12 @@
     <summary>Delete</summary>
 
     ```json
-{
-    "action": "delete",
-    "data": {
-        "rowkey": "&NEW:ROWKEY"
+    {
+        "action": "delete",
+        "data": {
+            "rowkey": "&NEW:ROWKEY"
+        }
     }
-}
     ```
 
     </details>
