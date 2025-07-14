@@ -1,71 +1,79 @@
 import express from 'express';
 import { PORT } from './utilities/config';
 import { prisma } from './utilities/prisma';
-import { IfsTableSynchronizationService } from './services/ifs-table-synchronization-service';
-import { IfsTableSynchronizationController } from './controllers/sync';
-import { OrganizationContextJsonLogger } from './utilities/organization-context-json-logger';
-import { IfsTableSqlAuditLogger } from './utilities/ifs-table-sql-audit-logger';
-import { IfsTableSynchronizationResponseMessage, IfsTableSynchronizationErrorType } from './types/ifs-table-synchronization-response-messages';
+import { IfsTableSynchronizationService } from './services/ifs-sync-service';
+import { IfsSyncController } from './controllers/ifs-sync-controller';
+import { requireJwt } from './middlewares/jwt';
+import { repairAndParseJSON } from './utilities/json-repair';
 
 const app = express();
 
-// Initialize dependencies
-const organizationContextLogger = new OrganizationContextJsonLogger();
-const sqlAuditLogger = new IfsTableSqlAuditLogger(organizationContextLogger);
+// Initialize services with simplified dependency injection
+const ifsSynchronizationService = new IfsTableSynchronizationService(prisma);
+const ifsSyncController = new IfsSyncController(ifsSynchronizationService);
 
-// Initialize services with proper dependency injection
-const ifsTableSynchronizationService = new IfsTableSynchronizationService(
-    prisma,
-    organizationContextLogger,
-    sqlAuditLogger
-);
-const ifsTableSynchronizationController = new IfsTableSynchronizationController(
-    ifsTableSynchronizationService,
-    organizationContextLogger
-);
+// Custom middleware to handle JSON parsing with repair fallback
+app.use((req, res, next) => {
+    if (req.headers['content-type']?.includes('application/json')) {
+        let body = '';
+        req.on('data', chunk => {
+            body += chunk.toString();
+        });
+        req.on('end', () => {
+            try {
+                // First try normal JSON parsing
+                req.body = JSON.parse(body);
+                next();
+            } catch (error) {
+                console.log('JSON parse failed, attempting repair...', error);
+                console.log('Raw body:', body);
 
-app.use(express.json({
-    verify: (req, _res, buf) => {
-        (req as any).rawBody = buf.toString('utf8');
+                // Try to repair and parse the JSON
+                const repairResult = repairAndParseJSON(body);
+
+                if (repairResult.success) {
+                    console.log('JSON repair successful!');
+                    console.log('Repaired JSON:', JSON.stringify(repairResult.data, null, 2));
+                    req.body = repairResult.data;
+                    next();
+                } else {
+                    console.error('JSON repair failed:', repairResult.error);
+                    res.status(400).json({
+                        error: "Invalid JSON payload",
+                        details: repairResult.error,
+                        originalBody: body
+                    });
+                }
+            }
+        });
+    } else {
+        next();
     }
-}));
+});
 
 const jsonParsingErrorHandler: express.ErrorRequestHandler = (jsonParsingError, httpRequest, httpResponse, next) => {
     if (jsonParsingError instanceof SyntaxError && 'body' in jsonParsingError) {
-        organizationContextLogger.logErrorWithOrganizationContext(
-            'unknown',
-            'Invalid JSON payload received in HTTP request',
-            jsonParsingError,
-            { 
-                requestMethod: httpRequest.method,
-                requestUrl: httpRequest.url,
-                rawRequestBody: (httpRequest as any).rawBody
-            }
-        );
-        httpResponse.status(400).json({ 
-          error: IfsTableSynchronizationResponseMessage.INVALID_JSON_PAYLOAD,
-          success: false,
-          error_type: IfsTableSynchronizationErrorType.MALFORMED_JSON
+        console.error('Invalid JSON payload received:', jsonParsingError.message);
+        httpResponse.status(200).json({
+          status: 400,
+          message: 'Invalid JSON payload',
+          success: false
         });
         return;
     }
     next();
 };
 app.use(jsonParsingErrorHandler);
+app.use(requireJwt);
 
-// Single IFS table synchronization endpoint
-app.post('/ifs-sync/v1/:table', (httpRequest, httpResponse) => 
-    ifsTableSynchronizationController.handleIfsTableSynchronizationRequest(httpRequest, httpResponse)
+app.post('/:table', (httpRequest, httpResponse) =>
+    ifsSyncController.handleSynchronizationRequest(httpRequest, httpResponse)
 );
+app.get('/health', (_, httpResponse) => {
+    httpResponse.send('ok');
+});
 
 app.listen(PORT, () => {
-    organizationContextLogger.logInformationWithOrganizationContext(
-        'system',
-        'IFS Table Synchronization Service started successfully',
-        { 
-            serverPort: PORT,
-            supportedIfsTableNames: ifsTableSynchronizationService.getSupportedIfsTableNames(),
-            numberOfSupportedTables: ifsTableSynchronizationService.getNumberOfSupportedIfsTableNames()
-        }
-    );
+    console.log(`IFS Sync Service started on port ${PORT}`);
+    console.log(`Supported tables: ${ifsSynchronizationService.getSupportedTableNames().join(', ')}`);
 });

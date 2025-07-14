@@ -111,15 +111,15 @@ model Delivery {
   zip           String?
   sub_country   String?
   country       String?
-  date          DateTime?
+  date          DateTime? @db.Timestamptz(6)
   invoice       Invoice   @relation("deliveries__invoices", fields: [invoice_id], references: [id], onDelete: Cascade)
 
   @@map("deliveries")
 }
 
 model Document {
-  id                       String                   @id @default(dbgenerated("concat('doc_', \"left\"(translate(encode(gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
-  created_at               DateTime                 @default(now())
+  id                       String                  @id @default(dbgenerated("concat('doc_', \"left\"(translate(encode(gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  created_at               DateTime                @default(now()) @db.Timestamptz(6)
   user_id                  String?
   organization_id          String?
   channel_name             String?
@@ -130,19 +130,19 @@ model Document {
   sender_email_address     String?
   object_path              String?
   document_receivement_id  String?
-  document_processing_jobs DocumentProcessingJobs[]
-  document_receivement     DocumentReceivement?     @relation("documents__document_receivements", fields: [document_receivement_id], references: [id], onDelete: Cascade)
-  organization             Organization?            @relation("documents__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
-  invoices                 Invoice[]                @relation("invoices__documents")
+  document_processing_jobs DocumentProcessingJob[]
+  document_receivement     DocumentReceivement?    @relation("documents__document_receivements", fields: [document_receivement_id], references: [id], onDelete: Cascade)
+  organization             Organization?           @relation("documents__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
+  invoices                 Invoice[]               @relation("invoices__documents")
 
   @@map("documents")
 }
 
 model DocumentReceivement {
   id              String        @id @default(dbgenerated("concat('docrec_', \"left\"(translate(encode(gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
-  created_at      DateTime      @default(now())
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
   organization_id String?
-  received_at     DateTime
+  received_at     DateTime      @db.Timestamptz(6)
   source          ImportSource
   sender          String?
   receiver        String?
@@ -158,18 +158,18 @@ model DocumentReceivement {
 
 model Invoice {
   id                            String                      @id @default(dbgenerated("concat('inv_', \"left\"(translate(encode(gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
-  created_at                    DateTime                    @default(now())
+  created_at                    DateTime                    @default(now()) @db.Timestamptz(6)
   organization_id               String?
   document_id                   String?
   invoice_number                String?
-  issue_date                    DateTime?
-  due_date                      DateTime?
+  issue_date                    DateTime?                   @db.Timestamptz(6)
+  due_date                      DateTime?                   @db.Timestamptz(6)
   type_code                     String?                     @db.VarChar(3)
   payment_terms                 String?
   payment_description           String?
   accounting_cost               String?
-  period_start_date             DateTime?
-  period_end_date               DateTime?
+  period_start_date             DateTime?                   @db.Timestamptz(6)
+  period_end_date               DateTime?                   @db.Timestamptz(6)
   buyer_reference               String?
   order_reference               String?
   contract_reference            String?
@@ -185,7 +185,7 @@ model Invoice {
   confidence                    Float?
   duplicate_invoice_id          String?
   is_einvoice                   Boolean?
-  archived_at                   DateTime?
+  archived_at                   DateTime?                   @db.Timestamptz(6)
   invoice_type                  InvoiceType?
   tenant_id                     String?
   additional_documents          AdditionalDocument[]        @relation("additional_documents__invoices")
@@ -218,7 +218,7 @@ model InvoiceComment {
   invoice_id   String
   user_id      String
   comment_text String
-  created_at   DateTime @default(now())
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
   invoice      Invoice  @relation("invoice_comments__invoices", fields: [invoice_id], references: [id], onDelete: Cascade)
 
   @@map("invoice_comments")
@@ -243,14 +243,14 @@ model InvoiceDiscountsAndCharge {
 
 model InvoiceExport {
   id            String                @id @default(dbgenerated("concat('invexp_', \"left\"(translate(encode(gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
-  exported_at   DateTime?
+  exported_at   DateTime?             @db.Timestamptz(6)
   invoice_id    String
   target_system String?
   status        InvoiceExportStatus?
   export_params Json?
   user_id       String?
-  retrieved_at  DateTime?
-  started_at    DateTime              @default(now())
+  retrieved_at  DateTime?             @db.Timestamptz(6)
+  started_at    DateTime              @default(now()) @db.Timestamptz(6)
   message       InvoiceExportMessage?
   invoice       Invoice               @relation("invoice_exports__invoices", fields: [invoice_id], references: [id], onDelete: Cascade)
 
@@ -285,8 +285,8 @@ model Item {
   tax_code                   String?
   tax_scheme                 String?
   accounting_cost            String?
-  invoice_period_start       DateTime?
-  invoice_period_end         DateTime?
+  invoice_period_start       DateTime?                 @db.Timestamptz(6)
+  invoice_period_end         DateTime?                 @db.Timestamptz(6)
   origin_country             String?
   item_discounts_and_charges ItemDiscountsAndCharges[] @relation("item_discounts_and_charges__items")
   invoice                    Invoice                   @relation("items__invoices", fields: [invoice_id], references: [id], onDelete: Cascade)
@@ -371,7 +371,7 @@ model NotificationRecipient {
 
 model Organization {
   id                             String                   @id @default(dbgenerated("concat('org_', \"left\"(translate(encode(gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
-  created_at                     DateTime                 @default(now())
+  created_at                     DateTime                 @default(now()) @db.Timestamptz(6)
   name                           String?
   export_type                    String?
   export_conf                    Json?
@@ -390,14 +390,14 @@ model Organization {
   default_organization_tenant    OrganizationTenant?      @relation("organizations__organization_tenants", fields: [default_organization_tenant_id], references: [id], onDelete: Cascade)
   organization_group             OrganizationGroup?       @relation("organizations__organization_groups", fields: [organization_group_id], references: [id], onDelete: Cascade)
   suppliers                      OrganizationOnSupplier[] @relation("organization_on_suppliers__organizations")
-  supplier_bank_addresses        SupplierBankAddresses[]  @relation("supplier_bank_addresses__organizations")
+  supplier_bank_addresses        SupplierBankAddresse[]   @relation("supplier_bank_addresses__organizations")
 
   @@map("organizations")
 }
 
 model OrganizationBankDetail {
   id              String        @id @default(dbgenerated("concat('org_', \"left\"(translate(encode(gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
-  created_at      DateTime      @default(now())
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
   organization_id String?
   description     String?
   iban            String?
@@ -412,7 +412,7 @@ model OrganizationConfigs {
   organization_id String?
   key             String
   value           Json?
-  updated_at      DateTime?
+  updated_at      DateTime?     @db.Timestamptz(6)
   organization    Organization? @relation("organization_configs__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
 
   @@unique([organization_id, key])
@@ -421,7 +421,7 @@ model OrganizationConfigs {
 
 model OrganizationGroup {
   id            String         @id @default(dbgenerated("concat('orggrp_', \"left\"(translate(encode(gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
-  created_at    DateTime       @default(now())
+  created_at    DateTime       @default(now()) @db.Timestamptz(6)
   name          String
   public_key    Bytes?
   organizations Organization[] @relation("organizations__organization_groups")
@@ -458,7 +458,7 @@ model OrganizationTenant {
   contact_email         String?
   contact_name          String?
   contact_phone         String?
-  updated_at            DateTime?
+  updated_at            DateTime?      @db.Timestamptz(6)
   invoices              Invoice[]      @relation("invoices__organization_tenants")
   organization          Organization   @relation("organization_tenants__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
   default_organizations Organization[] @relation("organizations__organization_tenants")
@@ -484,7 +484,7 @@ model PrecedingInvoice {
   id             String    @id @default(dbgenerated("concat('preinv_', \"left\"(translate(encode(gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
   invoice_id     String
   invoice_number String?
-  invoice_date   DateTime?
+  invoice_date   DateTime? @db.Timestamptz(6)
   invoice        Invoice   @relation("preceding_invoices__invoices", fields: [invoice_id], references: [id], onDelete: Cascade)
 
   @@map("preceding_invoices")
@@ -492,17 +492,17 @@ model PrecedingInvoice {
 
 model Supplier {
   id                    String                   @id @default(dbgenerated("concat('sup_', \"left\"(translate(encode(gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
-  created_at            DateTime                 @default(now())
+  created_at            DateTime                 @default(now()) @db.Timestamptz(6)
   supplier_id           String
   name                  String
   vat_id                String?
   tax_id                String?
   organization_group_id String?
   company_id            String?
+  external_id           String?
   companies             Company[]                @relation("companies__suppliers")
   organizations         OrganizationOnSupplier[] @relation("organization_on_suppliers__suppliers")
   organization_group    OrganizationGroup?       @relation("suppliers__organization_groups", fields: [organization_group_id], references: [id], onDelete: Cascade)
-  external_id           String?
 
   @@unique([supplier_id, organization_group_id, external_id])
   @@index([name])
@@ -577,22 +577,21 @@ model InvoicePresence {
   @@map("invoice_presence")
 }
 
-model SupplierBankAddresses {
-  id              String   @id(map: "pk_supplier_bank_addresses") @default(dbgenerated("concat('sba_', \"left\"(translate(encode(gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+model SupplierBankAddresse {
+  id              String        @id(map: "pk_supplier_bank_addresses") @default(dbgenerated("concat('sba_', \"left\"(translate(encode(gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
   tenant_id       String
   supplier_id     String
   supplier_name   String?
   bank_name       String?
   iban            String?
   bic             String?
-  is_default      Boolean? @default(false)
-  blocked_for_use Boolean? @default(false)
-  created_at      DateTime @default(now()) @db.Timestamp(6)
-  updated_at      DateTime @default(now()) @db.Timestamp(6)
+  is_default      Boolean?      @default(false)
+  blocked_for_use Boolean?      @default(false)
+  created_at      DateTime      @default(now()) @db.Timestamp(6)
+  updated_at      DateTime      @default(now()) @db.Timestamp(6)
   way_id          String?
   address_id      String?
   external_id     String?
-
   organization_id String?
   organization    Organization? @relation("supplier_bank_addresses__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
 
@@ -603,18 +602,18 @@ model SupplierBankAddresses {
   @@map("supplier_bank_addresses")
 }
 
-model DocumentProcessingJobs {
+model DocumentProcessingJob {
   id                String            @id @default(dbgenerated("concat('dpj_', \"left\"(translate(encode(gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
-  created_at        DateTime          @default(now())
-  updated_at        DateTime          @default(now())
+  created_at        DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime          @default(now()) @db.Timestamptz(6)
   document_id       String
   job_type          DocumentJobType
   external_job_id   String?
   status            DocumentJobStatus @default(PENDING)
   model             String?
-  started_at        DateTime?
-  completed_at      DateTime?
-  failed_at         DateTime?
+  started_at        DateTime?         @db.Timestamptz(6)
+  completed_at      DateTime?         @db.Timestamptz(6)
+  failed_at         DateTime?         @db.Timestamptz(6)
   result_data       Json?
   error_message     String?
   error_details     Json?

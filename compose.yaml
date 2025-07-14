@@ -1,0 +1,24 @@
+services:
+  nxinvoice-ifs-sync-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/aifano/nxinvoice-ifs-sync-service
+    pull_policy: always
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "13000:13000"
+    volumes:
+      - ./logs:/app/logs
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+      environment: "nxinvoice-dev-ifs-sync-export-service"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
