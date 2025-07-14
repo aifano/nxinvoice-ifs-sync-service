@@ -1,16 +1,31 @@
 import { Request, Response } from 'express';
 import { IfsTableSynchronizationService } from '../services/ifs-sync-service';
 import { IfsTableSynchronizationResponse } from '../types/ifs-table-synchronization';
+import { OrganizationContextJsonLogger } from '../utilities/organization-context-json-logger';
 
 export class IfsSyncController {
+  private logger: OrganizationContextJsonLogger;
 
-  constructor(private syncService: IfsTableSynchronizationService) {}
+  constructor(private syncService: IfsTableSynchronizationService) {
+    this.logger = new OrganizationContextJsonLogger();
+  }
 
   async handleSynchronizationRequest(httpRequest: Request, httpResponse: Response): Promise<void> {
     // 1. Extract arguments from header and parameters
     const { action, data } = httpRequest.body;
     const tableName = httpRequest.params.table;
     const organizationId = (httpRequest as any).orgId;
+
+    // Log incoming request IMMEDIATELY - this is critical for debugging
+    this.logger.logInformationWithOrganizationContext(
+      organizationId || 'UNKNOWN',
+      'Incoming IFS sync request',
+      {
+        action: action || 'UNKNOWN',
+        table: tableName || 'UNKNOWN',
+        hasData: !!data
+      }
+    );
 
     // 2. Always return HTTP status 200
     try {

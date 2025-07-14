@@ -121,28 +121,53 @@ export class SupplierInformationHandler implements IfsTableHandler {
     let result: IfsTableSynchronizationResult;
 
     try {
-      const createResult = await this.database.supplier.createMany({
+      // Erst versuchen zu aktualisieren
+      const updateResult = await this.database.supplier.updateMany({
+        where: {
+          organization_group_id: organizationId,
+          external_id: data.rowkey,
+        },
         data: {
           supplier_id: data.supplier_id || '',
           name: data.name || '',
-          organization_group_id: organizationId,
-          external_id: data.rowkey || null,
         },
-        skipDuplicates: true,
       });
 
-      if (createResult.count === 0) {
-        // Record exists, update it
-        await this.updateSupplier(organizationId, data);
-        result = {
-          status: 200,
-          message: 'Supplier updated via upsert',
-          success: true
-        };
+      if (updateResult.count === 0) {
+        // Record existiert nicht, erstelle ihn
+        try {
+          await this.database.supplier.create({
+            data: {
+              supplier_id: data.supplier_id || '',
+              name: data.name || '',
+              organization_group_id: organizationId,
+              external_id: data.rowkey || null,
+            },
+          });
+          result = {
+            status: 200,
+            message: 'Supplier created via upsert',
+            success: true
+          };
+        } catch (createError: any) {
+          if (createError.code === 'P2002') {
+            result = {
+              status: 409,
+              message: 'Supplier already exists',
+              success: false
+            };
+          } else {
+            result = {
+              status: 500,
+              message: 'Failed to create supplier via upsert',
+              success: false
+            };
+          }
+        }
       } else {
         result = {
           status: 200,
-          message: 'Supplier created via upsert',
+          message: 'Supplier updated via upsert',
           success: true
         };
       }

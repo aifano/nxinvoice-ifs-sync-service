@@ -8,10 +8,10 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    networks:
-      - billax
     ports:
-      - "127.0.0.1:13000:3000"
+      - "13000:13000"
+    volumes:
+      - ./logs:/app/logs
     labels:
       logging: "promtail"
       logging_jobname: "containerlogs"
@@ -22,7 +22,3 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}"
-
-networks:
-  billax:
-    external: true

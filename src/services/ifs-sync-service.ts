@@ -2,14 +2,17 @@ import { PrismaClient } from '@prisma/client';
 import { IfsTableSynchronizationResult } from '../types/ifs-table-synchronization';
 import { IfsTableHandlerFactory } from './ifs-table-handler-factory';
 import { SqlLogger } from '../utilities/sql-logger';
+import { OrganizationContextJsonLogger } from '../utilities/organization-context-json-logger';
 
 export class IfsTableSynchronizationService {
   private handlerFactory: IfsTableHandlerFactory;
   private sqlLogger: SqlLogger;
+  private logger: OrganizationContextJsonLogger;
 
   constructor(private database: PrismaClient) {
     this.sqlLogger = new SqlLogger();
     this.handlerFactory = new IfsTableHandlerFactory(database, this.sqlLogger);
+    this.logger = new OrganizationContextJsonLogger();
   }
 
   async synchronizeTableData(
@@ -40,8 +43,32 @@ export class IfsTableSynchronizationService {
 
     // 3. Pass task to handler
     try {
-      return await handler.handleOperation(action, organizationId, data);
+      // Hier soll geloggt werden.
+      const result = await handler.handleOperation(action, organizationId, data);
+      this.logger.logInformationWithOrganizationContext(
+        organizationId || 'UNKNOWN',
+        'IFS sync operation completed',
+        {
+          tableName,
+          action,
+          data,
+          result
+        }
+      );
+      return result;
     } catch (error) {
+      try {
+        this.logger.logInformationWithOrganizationContext(
+          organizationId || 'UNKNOWN',
+          'IFS sync operation failed',
+          {
+            tableName,
+            action,
+            data,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          }
+        );
+      } catch (log_error) {}
       return {
         status: 500,
         message: `Operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
