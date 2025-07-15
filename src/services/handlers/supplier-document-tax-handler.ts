@@ -27,7 +27,7 @@ export class SupplierDocumentTaxHandler implements IfsTableHandler {
   }
 
   private async insertSupplierTaxInfo(organizationId: string, data: any): Promise<IfsTableSynchronizationResult> {
-    const sqlStatement = this.buildSql('insert', data);
+    const sqlStatement = this.buildSql('insert', data, organizationId);
     let result: IfsTableSynchronizationResult;
 
     try {
@@ -105,7 +105,7 @@ export class SupplierDocumentTaxHandler implements IfsTableHandler {
   }
 
   private async updateSupplierTaxInfo(organizationId: string, data: any): Promise<IfsTableSynchronizationResult> {
-    const sqlStatement = this.buildSql('update', data);
+    const sqlStatement = this.buildSql('update', data, organizationId);
     let result: IfsTableSynchronizationResult;
 
     try {
@@ -152,7 +152,7 @@ export class SupplierDocumentTaxHandler implements IfsTableHandler {
   }
 
   private async deleteSupplierTaxInfo(organizationId: string, data: any): Promise<IfsTableSynchronizationResult> {
-    const sqlStatement = this.buildSql('delete', data);
+    const sqlStatement = this.buildSql('delete', data, organizationId);
     const result: IfsTableSynchronizationResult = {
       status: 200,
       message: 'Supplier tax information deletion not supported - operation skipped',
@@ -164,33 +164,45 @@ export class SupplierDocumentTaxHandler implements IfsTableHandler {
     return result;
   }
 
-  // SQL Statement Builder
-  private buildSql(action: string, data: any): string {
+  // SQL Statement Builder - WICHTIG: Diese SQL-Statements sind nur für Logging-Zwecke!
+  // Sie werden NICHT ausgeführt und dienen nur der Audit-Dokumentation.
+  private buildSql(action: string, data: any, organizationId?: string): string {
     const tableName = 'suppliers';
 
     if (action === 'delete') {
-      return `DELETE FROM "${tableName}" WHERE ROWKEY='${data.rowkey}'`;
+      // WICHTIG: DELETE-Operationen für Tax-Info werden nicht unterstützt, daher wird dies auskommentiert
+      return `-- DELETE FROM "${tableName}" WHERE external_id='${data.rowkey}' AND organization_group_id='${organizationId}' -- TAX INFO DELETION NOT SUPPORTED`;
     }
 
     if (action === 'insert' || action === 'upsert' || action === 'update') {
-      const columns = Object.keys(data).map(key => `"${key.toUpperCase()}"`);
-      const values = Object.values(data).map(value => `'${value}'`);
-      const cols = columns.join(',');
-      const vals = values.join(',');
-
-      if (action === 'upsert') {
-        const updateSet = Object.entries(data)
-          .map(([k, v]) => `"${k.toUpperCase()}"='${v}'`)
-          .join(',');
-        return `INSERT INTO "${tableName}" (${cols}) VALUES (${vals}) ON CONFLICT ("ROWKEY") DO UPDATE SET ${updateSet}`;
-      } else if (action === 'insert') {
-        return `INSERT INTO "${tableName}" (${cols}) VALUES (${vals})`;
-      } else if (action === 'update') {
+      if (action === 'update') {
         const updateSet = Object.entries(data)
           .filter(([k]) => k.toLowerCase() !== 'rowkey')
           .map(([k, v]) => `"${k.toUpperCase()}"='${v}'`)
           .join(',');
-        return `UPDATE "${tableName}" SET ${updateSet} WHERE ROWKEY='${data.rowkey}'`;
+        return `UPDATE "${tableName}" SET ${updateSet} WHERE external_id='${data.rowkey}' AND organization_group_id='${organizationId}'`;
+      } else {
+        // Für insert/upsert - füge organization_group_id hinzu
+        const dataWithOrg = { ...data, organization_group_id: organizationId };
+        const columns = Object.keys(dataWithOrg).map(key => {
+          if (key === 'rowkey') return '"EXTERNAL_ID"';
+          return `"${key.toUpperCase()}"`;
+        });
+        const values = Object.values(dataWithOrg).map(value => `'${value}'`);
+        const cols = columns.join(',');
+        const vals = values.join(',');
+
+        if (action === 'upsert') {
+          const updateSet = Object.entries(dataWithOrg)
+            .map(([k, v]) => {
+              const colName = k === 'rowkey' ? 'EXTERNAL_ID' : k.toUpperCase();
+              return `"${colName}"='${v}'`;
+            })
+            .join(',');
+          return `INSERT INTO "${tableName}" (${cols}) VALUES (${vals}) ON CONFLICT ("EXTERNAL_ID", "ORGANIZATION_GROUP_ID") DO UPDATE SET ${updateSet}`;
+        } else {
+          return `INSERT INTO "${tableName}" (${cols}) VALUES (${vals})`;
+        }
       }
     }
 

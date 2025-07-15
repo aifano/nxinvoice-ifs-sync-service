@@ -75,7 +75,7 @@ export class SupplierInformationHandler implements IfsTableHandler {
   }
 
   private async updateSupplier(organizationId: string, data: any): Promise<IfsTableSynchronizationResult> {
-    const sqlStatement = this.buildSql('update', data);
+    const sqlStatement = this.buildSql('update', data, organizationId);
     let result: IfsTableSynchronizationResult;
 
     try {
@@ -117,7 +117,7 @@ export class SupplierInformationHandler implements IfsTableHandler {
   }
 
   private async upsertSupplier(organizationId: string, data: any): Promise<IfsTableSynchronizationResult> {
-    const sqlStatement = this.buildSql('upsert', data);
+    const sqlStatement = this.buildSql('upsert', data, organizationId);
     let result: IfsTableSynchronizationResult;
 
     try {
@@ -185,7 +185,7 @@ export class SupplierInformationHandler implements IfsTableHandler {
   }
 
   private async deleteSupplier(organizationId: string, data: any): Promise<IfsTableSynchronizationResult> {
-    const sqlStatement = this.buildSql('delete', data);
+    const sqlStatement = this.buildSql('delete', data, organizationId);
     let result: IfsTableSynchronizationResult;
 
     try {
@@ -222,25 +222,35 @@ export class SupplierInformationHandler implements IfsTableHandler {
     return result;
   }
 
-  // SQL Statement Builder
-  private buildSql(action: string, data: any): string {
+  // SQL Statement Builder - WICHTIG: Diese SQL-Statements sind nur für Logging-Zwecke!
+  // Sie werden NICHT ausgeführt und dienen nur der Audit-Dokumentation.
+  private buildSql(action: string, data: any, organizationId?: string): string {
     const tableName = 'suppliers';
 
     if (action === 'delete') {
-      return `DELETE FROM "${tableName}" WHERE ROWKEY='${data.rowkey}'`;
+      return `DELETE FROM "${tableName}" WHERE external_id='${data.rowkey}' AND organization_group_id='${organizationId}'`;
     }
 
     if (action === 'insert' || action === 'upsert') {
-      const columns = Object.keys(data).map(key => `"${key.toUpperCase()}"`);
-      const values = Object.values(data).map(value => `'${value}'`);
+      // Füge organization_group_id zu den Daten hinzu für korrekte SQL-Darstellung
+      const dataWithOrg = { ...data, organization_group_id: organizationId };
+      const columns = Object.keys(dataWithOrg).map(key => {
+        // Mappe rowkey zu external_id für korrekte Spaltenbezeichnung
+        if (key === 'rowkey') return '"EXTERNAL_ID"';
+        return `"${key.toUpperCase()}"`;
+      });
+      const values = Object.values(dataWithOrg).map(value => `'${value}'`);
       const cols = columns.join(',');
       const vals = values.join(',');
 
       if (action === 'upsert') {
-        const updateSet = Object.entries(data)
-          .map(([k, v]) => `"${k.toUpperCase()}"='${v}'`)
+        const updateSet = Object.entries(dataWithOrg)
+          .map(([k, v]) => {
+            const colName = k === 'rowkey' ? 'EXTERNAL_ID' : k.toUpperCase();
+            return `"${colName}"='${v}'`;
+          })
           .join(',');
-        return `INSERT INTO "${tableName}" (${cols}) VALUES (${vals}) ON CONFLICT ("ROWKEY") DO UPDATE SET ${updateSet}`;
+        return `INSERT INTO "${tableName}" (${cols}) VALUES (${vals}) ON CONFLICT ("EXTERNAL_ID", "ORGANIZATION_GROUP_ID") DO UPDATE SET ${updateSet}`;
       } else {
         return `INSERT INTO "${tableName}" (${cols}) VALUES (${vals})`;
       }
@@ -251,7 +261,7 @@ export class SupplierInformationHandler implements IfsTableHandler {
         .filter(([k]) => k.toLowerCase() !== 'rowkey')
         .map(([k, v]) => `"${k.toUpperCase()}"='${v}'`)
         .join(',');
-      return `UPDATE "${tableName}" SET ${updateSet} WHERE ROWKEY='${data.rowkey}'`;
+      return `UPDATE "${tableName}" SET ${updateSet} WHERE external_id='${data.rowkey}' AND organization_group_id='${organizationId}'`;
     }
 
     return `-- Unknown action: ${action}`;
