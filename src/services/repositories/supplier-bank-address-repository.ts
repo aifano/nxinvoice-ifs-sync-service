@@ -15,6 +15,8 @@ export const supplierBankAddressOps = {
             is_default: data.default_address === 'TRUE',
             blocked_for_use: data.blocked_for_use === 'TRUE',
             way_id: data.way_id || null,
+            address_id: data.address_id || null,
+            external_id: data.rowkey || null,
             organization_id: organization_id
         }
     }),
@@ -31,7 +33,6 @@ export const supplierBankAddressOps = {
                 id: payment_address.id
             },
             data: {
-                tenant_id: data.company || '',
                 supplier_id: data.identity || '',
                 supplier_name: data.supplier_name || null,
                 bank_name: data.bank_name || null,
@@ -39,8 +40,7 @@ export const supplierBankAddressOps = {
                 bic: data.bic_code || null,
                 is_default: data.default_address === 'TRUE',
                 blocked_for_use: data.blocked_for_use === 'TRUE',
-                way_id: data.way_id || null,
-                address_id: data.address_id || null
+                way_id: data.way_id || null
             }
         });
     },
@@ -71,7 +71,6 @@ export const supplierBankAddressOps = {
                 id: payment_address.id
             },
             data: {
-                tenant_id: data.company || '',
                 supplier_id: data.identity || '',
                 supplier_name: data.supplier_name || null,
                 bank_name: data.bank_name || null,
@@ -79,8 +78,7 @@ export const supplierBankAddressOps = {
                 bic: data.bic_code || null,
                 is_default: data.default_address === 'TRUE',
                 blocked_for_use: data.blocked_for_use === 'TRUE',
-                way_id: data.way_id || null,
-                address_id: data.address_id || null,
+                way_id: data.way_id || null
             }
         });
     },
@@ -99,16 +97,28 @@ export const supplierBankAddressOps = {
     },
 
     __get_payment_address: async (data: IFS_PaymentAddressTab, organizationId: string) => {
-        if (!data.rowkey) {
-            throw new Error('Missing rowkey');
+        if (!data.rowkey && (!data.identity || !data.company || !data.address_id)) {
+            throw new Error('Missing rowkey or identity and address_id');
         }
 
-        let payment_address = await prisma.supplierBankAddresse.findFirst({
-            where: {
-                organization_id: organizationId,
-                external_id: data.rowkey
-            }
-        });
+        let payment_address
+        if (data.rowkey) {
+            payment_address = await prisma.supplierBankAddresse.findFirst({
+                where: {
+                    organization_id: organizationId,
+                    external_id: data.rowkey
+                }
+            });
+        } else if (data.identity && data.address_id && data.company) {
+            payment_address = await prisma.supplierBankAddresse.findFirst({
+                where: {
+                    organization_id: organizationId,
+                    supplier_id: data.identity,
+                    address_id: data.address_id,
+                    tenant_id: data.company
+                }
+            });
+        }
 
         return payment_address;
     }

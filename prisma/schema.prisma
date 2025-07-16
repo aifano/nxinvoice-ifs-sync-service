@@ -596,7 +596,8 @@ model SupplierBankAddresse {
   organization_id String?
   organization    Organization? @relation("supplier_bank_addresses__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
 
-  @@unique([tenant_id, supplier_id, way_id, address_id, iban, external_id], map: "uk_supplier_bank_addresses_unique")
+  @@unique([tenant_id, supplier_id, address_id, organization_id])
+  @@unique([external_id, organization_id])
   @@index([supplier_id], map: "idx_supplier_bank_addresses_supplier_id")
   @@index([tenant_id], map: "idx_supplier_bank_addresses_tenant_id")
   @@index([tenant_id, supplier_id], map: "idx_supplier_bank_addresses_tenant_supplier")
