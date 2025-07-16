@@ -1,11 +1,8 @@
-import { PrismaClient } from '@prisma/client';
 import { IfsTableHandler } from '../../types/ifs-table-handler';
 import { IfsTableSynchronizationResult } from '../../types/ifs-table-synchronization';
-import { SqlLogger } from '../../utilities/sql-logger';
+import { supplierBankAddressOps } from '../repositories/supplier-bank-address-repository';
 
 export class PaymentAddressHandler implements IfsTableHandler {
-
-  constructor(private database: PrismaClient, private sqlLogger: SqlLogger) {}
 
   async handleOperation(action: string, organizationId: string, data: any): Promise<IfsTableSynchronizationResult> {
     switch (action) {
@@ -27,26 +24,22 @@ export class PaymentAddressHandler implements IfsTableHandler {
   }
 
   private async insertPaymentAddress(organizationId: string, data: any): Promise<IfsTableSynchronizationResult> {
-    const sqlStatement = this.buildSql('insert', data, organizationId);
     let result: IfsTableSynchronizationResult;
 
     try {
-      await this.database.supplierBankAddresse.create({
-        data: {
-          tenant_id: data.company || data.tenant_id || '',
-          supplier_id: data.identity || '',
-          supplier_name: data.supplier_name || null,
-          bank_name: data.bank_name || null,
-          iban: data.account || null,
-          bic: data.bic_code || null,
-          is_default: data.default_address === 'TRUE',
-          blocked_for_use: data.blocked_for_use === 'TRUE',
-          way_id: data.way_id || null,
-          address_id: data.address_id || null,
-          external_id: data.rowkey || null,
-          organization_id: organizationId,
-        },
-      });
+      await supplierBankAddressOps.insert({
+        company: data.company || '',
+        identity: data.identity || '',
+        supplier_name: data.supplier_name || null,
+        bank_name: data.bank_name || null,
+        account: data.account || null,
+        bic_code: data.bic_code || null,
+        default_address: data.default_address || 'FALSE',
+        blocked_for_use: data.blocked_for_use || 'FALSE',
+        way_id: data.way_id || null,
+        address_id: data.address_id || null,
+        rowkey: data.rowkey || null
+      }, organizationId);
 
       result = {
         status: 200,
@@ -75,48 +68,32 @@ export class PaymentAddressHandler implements IfsTableHandler {
       }
     }
 
-    // Immer loggen - auch bei Fehlern
-    this.sqlLogger.logSqlStatement(sqlStatement, result.message);
     return result;
   }
 
   private async updatePaymentAddress(organizationId: string, data: any): Promise<IfsTableSynchronizationResult> {
-    const sqlStatement = this.buildSql('update', data, organizationId);
     let result: IfsTableSynchronizationResult;
 
     try {
-      const updateResult = await this.database.supplierBankAddresse.updateMany({
-        where: {
-          organization_id: organizationId,
-          external_id: data.rowkey,
-        },
-        data: {
-          supplier_id: data.identity || '',
-          supplier_name: data.supplier_name || null,
-          bank_name: data.bank_name || null,
-          iban: data.account || null,
-          bic: data.bic_code || null,
-          is_default: data.default_address === 'TRUE',
-          blocked_for_use: data.blocked_for_use === 'TRUE',
-          way_id: data.way_id || null,
-          address_id: data.address_id || null,
-          organization_id: organizationId,
-        },
-      });
+      await supplierBankAddressOps.update({
+        company: data.company || '',
+        identity: data.identity || '',
+        supplier_name: data.supplier_name || null,
+        bank_name: data.bank_name || null,
+        account: data.account || null,
+        bic_code: data.bic_code || null,
+        default_address: data.default_address || 'FALSE',
+        blocked_for_use: data.blocked_for_use || 'FALSE',
+        way_id: data.way_id || null,
+        address_id: data.address_id || null,
+        rowkey: data.rowkey || null
+      }, organizationId);
 
-      if (updateResult.count === 0) {
-        result = {
-          status: 404,
-          message: 'Payment address not found',
-          success: false
-        };
-      } else {
-        result = {
-          status: 200,
-          message: 'Payment address updated successfully',
-          success: true
-        };
-      }
+      result = {
+        status: 200,
+        message: 'Payment address updated successfully',
+        success: true
+      };
     } catch (error: any) {
       result = {
         status: 500,
@@ -125,119 +102,74 @@ export class PaymentAddressHandler implements IfsTableHandler {
       };
     }
 
-    // Immer loggen - auch bei Fehlern
-    this.sqlLogger.logSqlStatement(sqlStatement, result.message);
     return result;
   }
 
   private async upsertPaymentAddress(organizationId: string, data: any): Promise<IfsTableSynchronizationResult> {
-    const sqlStatement = this.buildSql('upsert', data, organizationId);
     let result: IfsTableSynchronizationResult;
 
     try {
       // Erst versuchen zu aktualisieren
-      const updateResult = await this.database.supplierBankAddresse.updateMany({
-        where: {
-          organization_id: organizationId,
-          external_id: data.rowkey,
-        },
-        data: {
-          supplier_id: data.identity || '',
-          supplier_name: data.supplier_name || null,
-          bank_name: data.bank_name || null,
-          iban: data.account || null,
-          bic: data.bic_code || null,
-          is_default: data.default_address === 'TRUE',
-          blocked_for_use: data.blocked_for_use === 'TRUE',
-          way_id: data.way_id || null,
-          address_id: data.address_id || null
-        },
-      });
-
-      if (updateResult.count === 0) {
-        // Record existiert nicht, erstelle ihn
-        try {
-          await this.database.supplierBankAddresse.create({
-            data: {
-              tenant_id: data.company || data.tenant_id || '',
-              supplier_id: data.identity || '',
-              supplier_name: data.supplier_name || null,
-              bank_name: data.bank_name || null,
-              iban: data.account || null,
-              bic: data.bic_code || null,
-              is_default: data.default_address === 'TRUE',
-              blocked_for_use: data.blocked_for_use === 'TRUE',
-              way_id: data.way_id || null,
-              address_id: data.address_id || null,
-              external_id: data.rowkey || null,
-              organization_id: organizationId,
-            },
-          });
-          result = {
-            status: 200,
-            message: 'Payment address created via upsert',
-            success: true
-          };
-        } catch (createError: any) {
-          if (createError.code === 'P2002') {
-            result = {
-              status: 409,
-              message: 'Payment address already exists',
-              success: false
-            };
-          } else {
-            result = {
-              status: 500,
-              message: 'Failed to create payment address via upsert',
-              success: false
-            };
-          }
-        }
-      } else {
-        result = {
-          status: 200,
-          message: 'Payment address updated via upsert',
-          success: true
-        };
-      }
-    } catch (error: any) {
+      await supplierBankAddressOps.upsert({
+        company: data.company || '',
+        identity: data.identity || '',
+        supplier_name: data.supplier_name || null,
+        bank_name: data.bank_name || null,
+        account: data.account || null,
+        bic_code: data.bic_code || null,
+        default_address: data.default_address || 'FALSE',
+        blocked_for_use: data.blocked_for_use || 'FALSE',
+        way_id: data.way_id || null,
+        address_id: data.address_id || null,
+        rowkey: data.rowkey || null
+      }, organizationId);
       result = {
-        status: 500,
-        message: 'Failed to upsert payment address',
-        success: false
+        status: 200,
+        message: 'Payment address updated via upsert',
+        success: true
       };
-    }
-
-    // Immer loggen - auch bei Fehlern
-    this.sqlLogger.logSqlStatement(sqlStatement, result.message);
-    return result;
-  }
-
-  private async deletePaymentAddress(organizationId: string, data: any): Promise<IfsTableSynchronizationResult> {
-    const sqlStatement = this.buildSql('delete', data, organizationId);
-    let result: IfsTableSynchronizationResult;
-
-    try {
-      const deleteResult = await this.database.supplierBankAddresse.deleteMany({
-        where: {
-          organization_id: organizationId,
-          external_id: data.rowkey,
-        },
-      });
-
-      if (deleteResult.count === 0) {
+    } catch (error: any) {
+      if (error.code === 'P2002') {
         result = {
-          status: 404,
-          message: 'Payment address not found',
+          status: 409,
+          message: 'Payment address already exists',
           success: false
         };
       } else {
         result = {
-          status: 200,
-          message: 'Payment address deleted successfully',
-          success: true
+          status: 500,
+          message: 'Failed to create payment address via upsert',
+          success: false
         };
       }
+    }
+
+    return result;
+  }
+
+  private async deletePaymentAddress(organizationId: string, data: any): Promise<IfsTableSynchronizationResult> {
+    let result: IfsTableSynchronizationResult;
+
+    try {
+      await supplierBankAddressOps.delete({
+        company: data.company || '',
+        identity: data.identity || '',
+        supplier_name: data.supplier_name || null,
+        bank_name: data.bank_name || null,
+        account: data.account || null,
+        bic_code: data.bic_code || null,
+        default_address: data.default_address || 'FALSE',
+        blocked_for_use: data.blocked_for_use || 'FALSE',
+        way_id: data.way_id || null,
+        address_id: data.address_id || null,
+        rowkey: data.rowkey || null
+      }, organizationId);
+
+      result = {
+        status: 200,
+        message: 'Payment address deleted successfully',
+        success: true
+      };
     } catch (error: any) {
       result = {
         status: 500,
@@ -246,53 +178,6 @@ export class PaymentAddressHandler implements IfsTableHandler {
       };
     }
 
-    // Immer loggen - auch bei Fehlern
-    this.sqlLogger.logSqlStatement(sqlStatement, result.message);
     return result;
-  }
-
-  // SQL Statement Builder - WICHTIG: Diese SQL-Statements sind nur für Logging-Zwecke!
-  // Sie werden NICHT ausgeführt und dienen nur der Audit-Dokumentation.
-  private buildSql(action: string, data: any, organizationId?: string): string {
-    const tableName = 'supplier_bank_addresses';
-
-    if (action === 'delete') {
-      return `DELETE FROM "${tableName}" WHERE external_id='${data.rowkey}' AND organization_id='${organizationId}'`;
-    }
-
-    if (action === 'insert' || action === 'upsert') {
-      // Füge organization_id zu den Daten hinzu für korrekte SQL-Darstellung
-      const dataWithOrg = { ...data, organization_id: organizationId };
-      const columns = Object.keys(dataWithOrg).map(key => {
-        // Mappe rowkey zu external_id für korrekte Spaltenbezeichnung
-        if (key === 'rowkey') return '"EXTERNAL_ID"';
-        return `"${key.toUpperCase()}"`;
-      });
-      const values = Object.values(dataWithOrg).map(value => `'${value}'`);
-      const cols = columns.join(',');
-      const vals = values.join(',');
-
-      if (action === 'upsert') {
-        const updateSet = Object.entries(dataWithOrg)
-          .map(([k, v]) => {
-            const colName = k === 'rowkey' ? 'EXTERNAL_ID' : k.toUpperCase();
-            return `"${colName}"='${v}'`;
-          })
-          .join(',');
-        return `INSERT INTO "${tableName}" (${cols}) VALUES (${vals}) ON CONFLICT ("EXTERNAL_ID", "ORGANIZATION_ID") DO UPDATE SET ${updateSet}`;
-      } else {
-        return `INSERT INTO "${tableName}" (${cols}) VALUES (${vals})`;
-      }
-    }
-
-    if (action === 'update') {
-      const updateSet = Object.entries(data)
-        .filter(([k]) => k.toLowerCase() !== 'rowkey')
-        .map(([k, v]) => `"${k.toUpperCase()}"='${v}'`)
-        .join(',');
-      return `UPDATE "${tableName}" SET ${updateSet} WHERE external_id='${data.rowkey}' AND organization_id='${organizationId}'`;
-    }
-
-    return `-- Unknown action: ${action}`;
   }
 }

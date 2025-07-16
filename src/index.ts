@@ -1,6 +1,5 @@
 import express from 'express';
 import { PORT } from './utilities/config';
-import { prisma } from './utilities/prisma';
 import { IfsTableSynchronizationService } from './services/ifs-sync-service';
 import { IfsSyncController } from './controllers/ifs-sync-controller';
 import { requireJwt } from './middlewares/jwt';
@@ -9,7 +8,7 @@ import { repairAndParseJSON } from './utilities/json-repair';
 const app = express();
 
 // Initialize services with simplified dependency injection
-const ifsSynchronizationService = new IfsTableSynchronizationService(prisma);
+const ifsSynchronizationService = new IfsTableSynchronizationService();
 const ifsSyncController = new IfsSyncController(ifsSynchronizationService);
 
 // Custom middleware to handle JSON parsing with repair fallback
