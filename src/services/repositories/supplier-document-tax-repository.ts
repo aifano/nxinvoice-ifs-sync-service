@@ -26,7 +26,23 @@ export const supplierDocumentTaxOps = {
 
     upsert: async (data: IFS_SupplierDocumentTaxInfoTab, organizationId: string) => supplierDocumentTaxOps.update(data, organizationId),
 
-    delete: (data: IFS_SupplierDocumentTaxInfoTab, organizationId: string) => Promise.resolve(),
+    delete: async (data: IFS_SupplierDocumentTaxInfoTab, organizationId: string) => {
+        const supplier = await supplierDocumentTaxOps.__get_supplier(data, organizationId);
+
+        if (!supplier) {
+            throw new Error('Supplier not found');
+        }
+
+        return prisma.supplier.update({
+            where: {
+                id: supplier.id
+            },
+            data: {
+                vat_id: null,
+                tax_id: null,
+            }
+        });
+    },
 
     __get_supplier: async (data: IFS_SupplierDocumentTaxInfoTab, organizationId: string) => {
         if (!data.supplier_id) {
