@@ -40,7 +40,13 @@ export class SupplierDocumentTaxHandler implements IfsTableHandler {
         success: true
       };
     } catch (error: any) {
-      if (error.code === 'P2003') {
+      if (error.message === 'Supplier not found') {
+        result = {
+          status: 404,
+          message: 'Supplier not found for tax information update',
+          success: false
+        };
+      } else if (error.code === 'P2003') {
         result = {
           status: 400,
           message: 'Invalid organization or reference data',
@@ -75,11 +81,19 @@ export class SupplierDocumentTaxHandler implements IfsTableHandler {
         success: true
       };
     } catch (error: any) {
-      result = {
-        status: 500,
-        message: 'Failed to update supplier tax information',
-        success: false
-      };
+      if (error.message === 'Supplier not found') {
+        result = {
+          status: 404,
+          message: 'Supplier not found for tax information update',
+          success: false
+        };
+      } else {
+        result = {
+          status: 500,
+          message: 'Failed to update supplier tax information',
+          success: false
+        };
+      }
     }
 
     return result;
@@ -102,11 +116,19 @@ export class SupplierDocumentTaxHandler implements IfsTableHandler {
         success: true
       };
     } catch (error: any) {
-      result = {
-        status: 500,
-        message: 'Failed to upsert supplier tax information',
-        success: false
-      };
+      if (error.message === 'Supplier not found') {
+        result = {
+          status: 404,
+          message: 'Supplier not found for tax information upsert',
+          success: false
+        };
+      } else {
+        result = {
+          status: 500,
+          message: 'Failed to upsert supplier tax information',
+          success: false
+        };
+      }
     }
 
     return result;
@@ -129,11 +151,19 @@ export class SupplierDocumentTaxHandler implements IfsTableHandler {
         success: true
       };
     } catch (error: any) {
-      result = {
-        status: 500,
-        message: 'Failed to delete supplier tax information',
-        success: false
-      };
+      if (error.message === 'Supplier not found') {
+        result = {
+          status: 404,
+          message: 'Supplier not found for tax information deletion',
+          success: false
+        };
+      } else {
+        result = {
+          status: 500,
+          message: 'Failed to delete supplier tax information',
+          success: false
+        };
+      }
     }
 
     return result;
