@@ -64,7 +64,7 @@ model Company {
   contact_email             String?
   supplier_id               String?
   invoice                   Invoice   @relation("companies__invoices", fields: [invoice_id], references: [id], onDelete: Cascade)
-  supplier                  Supplier? @relation("companies__suppliers", fields: [supplier_id], references: [id], onDelete: Cascade)
+  supplier                  Supplier? @relation("companies__suppliers", fields: [supplier_id], references: [id], onDelete: SetNull)
 
   @@index([name, vat_id, tax_id])
   @@map("companies")
@@ -131,7 +131,7 @@ model Document {
   object_path              String?
   document_receivement_id  String?
   document_processing_jobs DocumentProcessingJob[]
-  document_receivement     DocumentReceivement?    @relation("documents__document_receivements", fields: [document_receivement_id], references: [id], onDelete: Cascade)
+  document_receivement     DocumentReceivement?    @relation("documents__document_receivements", fields: [document_receivement_id], references: [id], onDelete: SetNull)
   organization             Organization?           @relation("documents__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
   invoices                 Invoice[]               @relation("invoices__documents")
 
@@ -198,7 +198,7 @@ model Invoice {
   invoice_exports               InvoiceExport[]             @relation("invoice_exports__invoices")
   document                      Document?                   @relation("invoices__documents", fields: [document_id], references: [id], onDelete: Cascade)
   organization                  Organization?               @relation("invoices__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
-  tenant                        OrganizationTenant?         @relation("invoices__organization_tenants", fields: [tenant_id], references: [id], onDelete: Cascade)
+  tenant                        OrganizationTenant?         @relation("invoices__organization_tenants", fields: [tenant_id], references: [id], onDelete: SetNull)
   items                         Item[]                      @relation("items__invoices")
   joined_items                  JoinedItem[]                @relation("joined_items__invoices")
   notes                         Note[]                      @relation("notes__invoices")
@@ -387,7 +387,7 @@ model Organization {
   organization_bank_details      OrganizationBankDetail[] @relation("organization_bank_details__organizations")
   organization_configs           OrganizationConfigs[]    @relation("organization_configs__organizations")
   organization_tenants           OrganizationTenant[]     @relation("organization_tenants__organizations")
-  default_organization_tenant    OrganizationTenant?      @relation("organizations__organization_tenants", fields: [default_organization_tenant_id], references: [id], onDelete: Cascade)
+  default_organization_tenant    OrganizationTenant?      @relation("organizations__organization_tenants", fields: [default_organization_tenant_id], references: [id], onDelete: SetNull)
   organization_group             OrganizationGroup?       @relation("organizations__organization_groups", fields: [organization_group_id], references: [id], onDelete: Cascade)
   suppliers                      OrganizationOnSupplier[] @relation("organization_on_suppliers__organizations")
   supplier_bank_addresses        SupplierBankAddresse[]   @relation("supplier_bank_addresses__organizations")
@@ -504,7 +504,8 @@ model Supplier {
   organizations         OrganizationOnSupplier[] @relation("organization_on_suppliers__suppliers")
   organization_group    OrganizationGroup?       @relation("suppliers__organization_groups", fields: [organization_group_id], references: [id], onDelete: Cascade)
 
-  @@unique([supplier_id, organization_group_id, external_id])
+  @@unique([supplier_id, organization_group_id])
+  @@unique([external_id, organization_group_id])
   @@index([name])
   @@index([organization_group_id], map: "idx_suppliers_organization_group_id")
   @@map("suppliers")
@@ -595,7 +596,8 @@ model SupplierBankAddresse {
   organization_id String?
   organization    Organization? @relation("supplier_bank_addresses__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
 
-  @@unique([tenant_id, supplier_id, way_id, address_id, iban, external_id], map: "uk_supplier_bank_addresses_unique")
+  @@unique([tenant_id, supplier_id, address_id, organization_id])
+  @@unique([external_id, organization_id])
   @@index([supplier_id], map: "idx_supplier_bank_addresses_supplier_id")
   @@index([tenant_id], map: "idx_supplier_bank_addresses_tenant_id")
   @@index([tenant_id, supplier_id], map: "idx_supplier_bank_addresses_tenant_supplier")
@@ -623,7 +625,7 @@ model DocumentProcessingJob {
   max_retries       Int               @default(3)
   request_config    Json?
   parse_result      Json?
-  documents         Document          @relation(fields: [document_id], references: [id], onDelete: Cascade)
+  documents         Document          @relation(fields: [document_id], references: [id], onDelete: SetNull)
 
   @@index([document_id, job_type])
   @@index([external_job_id])
@@ -697,4 +699,124 @@ enum DocumentJobStatus {
 enum DocumentJobType {
   PARSE
   EXTRACT
+}
+
+
+
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model PAYMENT_ADDRESS_TAB {
+  COMPANY                 String
+  IDENTITY                String
+  PARTY_TYPE              String
+  WAY_ID                  String
+  ADDRESS_ID              String
+  DESCRIPTION             String?
+  DEFAULT_ADDRESS         String
+  ACCOUNT                 String
+  DATA1                   String?
+  DATA2                   String?
+  DATA3                   String?
+  DATA4                   String?
+  DATA5                   String?
+  DATA6                   String?
+  DATA7                   String?
+  DATA8                   String?
+  DATA9                   String?
+  DATA10                  String?
+  DATA11                  String?
+  DATA12                  String?
+  DATA13                  String?
+  DATA14                  String?
+  DATA15                  String?
+  DATA16                  String?
+  DATA17                  String?
+  DATA18                  String?
+  DATA19                  String?
+  DATA20                  String?
+  DATA21                  String?
+  DATA22                  String?
+  DATA23                  String?
+  DATA24                  String?
+  DATA25                  String?
+  DATA26                  String?
+  DATA27                  String?
+  DATA28                  String?
+  DATA29                  String?
+  DATA30                  String?
+  DATA31                  String?
+  DATA32                  String?
+  DATA33                  String?
+  DATA34                  String?
+  DATA35                  String?
+  DATA36                  String?
+  DATA37                  String?
+  DATA38                  String?
+  DATA39                  String?
+  DATA40                  String?
+  DATA41                  String?
+  BIC_CODE                String?
+  BLOCKED_FOR_USE         String
+  MAPPING_TYPE            String
+  ROWVERSION              String
+  ROWKEY                  String
+  BANK_ACCOUNT_VALIDATED  String
+  BANK_ACCOUNT_VALID_DATE String?
+
+  @@map("__PAYMENT_ADDRESS_TAB")
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model SUPPLIER_DOCUMENT_TAX_INFO_TAB {
+  SUPPLIER_ID            String
+  ADDRESS_ID             String
+  COMPANY                String
+  TAX_ID_TYPE            String?
+  VAT_NO                 String?
+  VALIDATED_DATE         String?
+  ROWVERSION             String
+  ROWKEY                 String
+  RELIABILITY_STATUS     String?
+  DECLARATION_DATE       String?
+  LAST_MODIFY_DATE       String?
+  TAX_ID_NO2             String?
+  TAX_ID_NO3             String?
+  TAX_ID_NO4             String?
+  TAX_ID_NO5             String?
+  TAX_ID_NO6             String?
+  TAX_OFFICE_ID          String?
+  GROUP_TAX_ID_NUMBER    String?
+  DOMESTIC_TAX_ID_NUMBER String?
+
+  @@map("__SUPPLIER_DOCUMENT_TAX_INFO_TAB")
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model SUPPLIER_INFO_TAB {
+  SUPPLIER_ID               String
+  NAME                      String
+  CREATION_DATE             String
+  ASSOCIATION_NO            String?
+  PARTY                     String
+  DEFAULT_LANGUAGE          String
+  COUNTRY                   String
+  PARTY_TYPE                String
+  SUPPLIERS_OWN_ID          String?
+  CORPORATE_FORM            String?
+  IDENTIFIER_REFERENCE      String?
+  PICTURE_ID                String?
+  ONE_TIME                  String
+  SUPPLIER_CATEGORY         String
+  B2B_SUPPLIER              String
+  DEFAULT_DOMAIN            String
+  IDENTIFIER_REF_VALIDATION String
+  TEXT_ID_                  String
+  ROWVERSION                String
+  ROWKEY                    String
+  ROWTYPE                   String
+
+  @@map("__SUPPLIER_INFO_TAB")
+  @@ignore
 }
