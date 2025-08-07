@@ -1,17 +1,13 @@
-import { PrismaClient } from '@prisma/client';
 import { IfsTableSynchronizationResult } from '../types/ifs-table-synchronization';
 import { IfsTableHandlerFactory } from './ifs-table-handler-factory';
-import { SqlLogger } from '../utilities/sql-logger';
 import { OrganizationContextJsonLogger } from '../utilities/organization-context-json-logger';
 
 export class IfsTableSynchronizationService {
   private handlerFactory: IfsTableHandlerFactory;
-  private sqlLogger: SqlLogger;
   private logger: OrganizationContextJsonLogger;
 
-  constructor(private database: PrismaClient) {
-    this.sqlLogger = new SqlLogger();
-    this.handlerFactory = new IfsTableHandlerFactory(database, this.sqlLogger);
+  constructor() {
+    this.handlerFactory = new IfsTableHandlerFactory();
     this.logger = new OrganizationContextJsonLogger();
   }
 
