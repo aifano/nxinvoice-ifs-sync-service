@@ -1,4 +1,4 @@
-interface RepairResult {
+export interface RepairResult {
     success: boolean;
     data?: any;
     error?: string;
