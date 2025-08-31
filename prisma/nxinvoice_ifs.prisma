@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/@prisma/nxinvoice_ifs_client"
+  output   = "../node_modules/@prisma/ifs_sync_client"
 }
 
 datasource db {

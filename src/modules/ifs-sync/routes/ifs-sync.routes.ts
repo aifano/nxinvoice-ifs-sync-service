@@ -1,10 +1,8 @@
 import { Router } from 'express';
 import { IfsSyncController } from '../controllers/ifs-sync.controller';
-import { PrismaClient } from '@prisma/client';
 
 const router = Router();
-const prisma = new PrismaClient();
-const controller = new IfsSyncController(prisma);
+const controller = new IfsSyncController();
 
 // Supported tables
 const SUPPORTED_TABLES = [

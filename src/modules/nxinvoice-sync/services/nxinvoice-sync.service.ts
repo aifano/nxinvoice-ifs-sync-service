@@ -1,10 +1,10 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient as NxinvoiceSyncPrismaClient } from '@prisma/nxinvoice_sync_client';
 
 export class NxinvoiceSyncService {
-  private prisma: PrismaClient;
+  private prisma: NxinvoiceSyncPrismaClient;
 
-  constructor(prisma?: PrismaClient) {
-    this.prisma = prisma || new PrismaClient();
+  constructor() {
+    this.prisma = new NxinvoiceSyncPrismaClient();
   }
 
   // Supplier operations

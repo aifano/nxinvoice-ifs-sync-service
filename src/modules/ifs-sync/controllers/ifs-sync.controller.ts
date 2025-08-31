@@ -1,15 +1,14 @@
 import { Request, Response } from 'express';
 import { IfsSyncService } from '../services/ifs-sync.service';
 import { SyncEventService } from '../services/sync-event.service';
-import { PrismaClient } from '@prisma/client';
 import { IfsResponse } from '../../../common/interfaces/ifs.interface';
 
 export class IfsSyncController {
   private service: IfsSyncService;
   private syncEventService: SyncEventService;
 
-  constructor(prisma?: PrismaClient) {
-    this.service = new IfsSyncService(prisma);
+  constructor() {
+    this.service = new IfsSyncService();
     this.syncEventService = new SyncEventService();
   }
 

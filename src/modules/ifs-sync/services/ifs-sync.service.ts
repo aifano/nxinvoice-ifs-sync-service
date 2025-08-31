@@ -1,11 +1,11 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient as IfsSyncPrismaClient } from '@prisma/ifs_sync_client';
 import { IfsResponse } from '../../../common/interfaces/ifs.interface';
 
 export class IfsSyncService {
-  private prisma: PrismaClient;
+  private prisma: IfsSyncPrismaClient;
 
-  constructor(prisma?: PrismaClient) {
-    this.prisma = prisma || new PrismaClient();
+  constructor() {
+    this.prisma = new IfsSyncPrismaClient();
   }
 
   async processData(table: string, action: string, data: any, organizationId: string): Promise<IfsResponse & { previousData?: any }> {
