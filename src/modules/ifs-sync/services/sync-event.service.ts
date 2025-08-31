@@ -10,22 +10,22 @@ export class SyncEventService {
 
   // Table sync handlers mapping for upsert operations
   private upsertHandlers = {
-    'supplier_info_tab': (organizationId: string, rowkey: string) =>
-      this.nxinvoiceSyncService.upsertSupplier(organizationId, rowkey),
-    'payment_address_tab': (organizationId: string, rowkey: string) =>
-      this.nxinvoiceSyncService.upsertPayment(organizationId, rowkey),
-    'supplier_document_tax_info_tab': (organizationId: string, rowkey: string) =>
-      this.nxinvoiceSyncService.upsertTax(organizationId, rowkey)
+    'supplier_info_tab': (organizationId: string, rowkey: string, previousData: any, changes: any) =>
+      this.nxinvoiceSyncService.upsertSupplier(organizationId, rowkey, previousData, changes),
+    'payment_address_tab': (organizationId: string, rowkey: string, previousData: any, changes: any) =>
+      this.nxinvoiceSyncService.upsertPayment(organizationId, rowkey, previousData, changes),
+    'supplier_document_tax_info_tab': (organizationId: string, rowkey: string, previousData: any, changes: any) =>
+      this.nxinvoiceSyncService.upsertTax(organizationId, rowkey, previousData, changes)
   };
 
   // Table sync handlers mapping for delete operations
   private deleteHandlers = {
-    'supplier_info_tab': (organizationId: string, rowkey: string) =>
-      this.nxinvoiceSyncService.deleteSupplier(organizationId, rowkey),
-    'payment_address_tab': (organizationId: string, rowkey: string) =>
-      this.nxinvoiceSyncService.deletePayment(organizationId, rowkey),
-    'supplier_document_tax_info_tab': (organizationId: string, rowkey: string) =>
-      this.nxinvoiceSyncService.deleteTax(organizationId, rowkey)
+    'supplier_info_tab': (organizationId: string, rowkey: string, previousData: any, changes: any) =>
+      this.nxinvoiceSyncService.deleteSupplier(organizationId, rowkey, previousData, changes),
+    'payment_address_tab': (organizationId: string, rowkey: string, previousData: any, changes: any) =>
+      this.nxinvoiceSyncService.deletePayment(organizationId, rowkey, previousData, changes),
+    'supplier_document_tax_info_tab': (organizationId: string, rowkey: string, previousData: any, changes: any) =>
+      this.nxinvoiceSyncService.deleteTax(organizationId, rowkey, previousData, changes)
   };
 
   constructor() {
@@ -76,7 +76,7 @@ export class SyncEventService {
 
   private async performDatabaseSync(event: SyncEvent): Promise<void> {
     try {
-      let syncHandler: ((organizationId: string, rowkey: string) => Promise<void>) | undefined;
+      let syncHandler: ((organizationId: string, rowkey: string, previousData: any, changes: any) => Promise<void>) | undefined;
 
       // Choose the appropriate handler based on operation type
       if (event.operation === 'delete') {
@@ -92,7 +92,7 @@ export class SyncEventService {
       }
 
       console.log(`NXInvoice sync - Processing ${event.operation} for ${event.tableName}/${event.rowkey}`);
-      await syncHandler(event.organizationId, event.rowkey);
+      await syncHandler(event.organizationId, event.rowkey, event.previousData, event.data);
     } catch (error) {
       console.error(`NXInvoice sync failed for ${event.tableName}/${event.rowkey} (${event.operation}):`, error);
       // Don't throw - we don't want to break the IFS sync if NXInvoice sync fails

@@ -8,7 +8,7 @@ export class IfsSyncService {
     this.prisma = prisma || new PrismaClient();
   }
 
-  async processData(table: string, action: string, data: any, organizationId: string): Promise<IfsResponse> {
+  async processData(table: string, action: string, data: any, organizationId: string): Promise<IfsResponse & { previousData?: any }> {
     try {
       // Validate rowkey is present for all operations
       if (!data?.rowkey || typeof data.rowkey !== 'string' || data.rowkey.trim() === '') {
@@ -18,11 +18,16 @@ export class IfsSyncService {
         };
       }
 
+      // Read existing data before performing any operation
+      const previousData = await this.readExistingData(table, organizationId, data.rowkey);
+
       if (action === 'delete') {
-        return await this.deleteRecord(table, data, organizationId);
+        const result = await this.deleteRecord(table, data, organizationId);
+        return { ...result, previousData };
       } else if (action === 'upsert' || action === 'insert' || action === 'update') {
         // All other actions (upsert, insert, update) use upsert logic
-        return await this.upsertRecord(table, data, organizationId);
+        const result = await this.upsertRecord(table, data, organizationId);
+        return { ...result, previousData };
       } else {
         return {
           message: 'Unsupported action',
@@ -53,14 +58,14 @@ export class IfsSyncService {
       switch (table) {
         case 'supplier_info_tab':
           recordData = this.filterValidFields(recordData, 'supplier');
-          return await this.performUpsert(this.prisma.iFS_Supplier, recordData, organizationId, data.rowkey);
+          return await this.performUpsert((this.prisma as any).iFS_Supplier, recordData, organizationId, data.rowkey);
         case 'payment_address_tab':
           recordData = this.mapPaymentFields(recordData);
           recordData = this.filterValidFields(recordData, 'payment');
-          return await this.performUpsert(this.prisma.iFS_Payment_Address, recordData, organizationId, data.rowkey);
+          return await this.performUpsert((this.prisma as any).iFS_Payment_Address, recordData, organizationId, data.rowkey);
         case 'supplier_document_tax_info_tab':
           recordData = this.filterValidFields(recordData, 'tax');
-          return await this.performUpsert(this.prisma.iFS_Supplier_Document_Tax, recordData, organizationId, data.rowkey);
+          return await this.performUpsert((this.prisma as any).iFS_Supplier_Document_Tax, recordData, organizationId, data.rowkey);
         default:
           throw new Error(`Unsupported table: ${table}`);
       }
@@ -71,12 +76,12 @@ export class IfsSyncService {
 
   private async deleteRecord(table: string, data: any, organizationId: string): Promise<IfsResponse> {
     const prismaTables: Record<string, any> = {
-      'supplier_info_tab': this.prisma.iFS_Supplier,
-      'payment_address_tab': this.prisma.iFS_Payment_Address,
-      'supplier_document_tax_info_tab': this.prisma.iFS_Supplier_Document_Tax
+      'supplier_info_tab': (this.prisma as any).iFS_Supplier,
+      'payment_address_tab': (this.prisma as any).iFS_Payment_Address,
+      'supplier_document_tax_info_tab': (this.prisma as any).iFS_Supplier_Document_Tax
     };
     try {
-      
+
       const prismaTable = prismaTables[table];
       if (!prismaTable) {
         throw new Error(`Unsupported table: ${table}`);
@@ -192,12 +197,41 @@ export class IfsSyncService {
     return filteredData;
   }
 
+  // Read existing data before performing operations
+  private async readExistingData(table: string, organizationId: string, rowkey: string): Promise<any> {
+    try {
+      const prismaTables: Record<string, any> = {
+        'supplier_info_tab': (this.prisma as any).iFS_Supplier,
+        'payment_address_tab': (this.prisma as any).iFS_Payment_Address,
+        'supplier_document_tax_info_tab': (this.prisma as any).iFS_Supplier_Document_Tax
+      };
+
+      const prismaTable = prismaTables[table];
+      if (!prismaTable) {
+        console.warn(`Unknown table for reading existing data: ${table}`);
+        return null;
+      }
+
+      const existingRecord = await prismaTable.findFirst({
+        where: {
+          organization_id: organizationId,
+          rowkey: rowkey
+        }
+      });
+
+      return existingRecord;
+    } catch (error) {
+      console.error(`Failed to read existing data for ${table}/${rowkey}:`, error);
+      return null;
+    }
+  }
+
   // Get valid fields directly from Prisma models
   private getValidFieldsFromPrisma(tableType: 'supplier' | 'payment' | 'tax'): string[] {
     const prismaTables = {
-      'supplier': this.prisma.iFS_Supplier,
-      'payment': this.prisma.iFS_Payment_Address,
-      'tax': this.prisma.iFS_Supplier_Document_Tax
+      'supplier': (this.prisma as any).iFS_Supplier,
+      'payment': (this.prisma as any).iFS_Payment_Address,
+      'tax': (this.prisma as any).iFS_Supplier_Document_Tax
     };
     return prismaTables[tableType] && (prismaTables[tableType] as any).fields ? Object.keys((prismaTables[tableType] as any).fields || {}) : [];
   }

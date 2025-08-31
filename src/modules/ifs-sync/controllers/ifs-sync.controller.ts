@@ -21,7 +21,7 @@ export class IfsSyncController {
     try {
       // No validation - process all requests
       const result = await this.service.processData(table, action, data, organizationId);
-      
+
       // Emit sync event if successful
       if (result.success && data?.rowkey) {
         this.syncEventService.emitSyncEvent({
@@ -30,16 +30,18 @@ export class IfsSyncController {
           rowkey: data.rowkey,
           operation: action,
           timestamp: new Date(),
-          data
+          data,
+          previousData: (result as any).previousData
         });
       }
-      
+
       // Log and respond
       this.logRequest(req, result, startTime);
 
-      // Remove error field before sending to client
+      // Remove error field and previousData before sending to client
       const clientResponse = { ...result };
       delete clientResponse.error;
+      delete (clientResponse as any).previousData;
 
       res.status(200).json(clientResponse);
 
