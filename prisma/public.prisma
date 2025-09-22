@@ -1,0 +1,605 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["views"]
+  output   = "../node_modules/@prisma/nxinvoice_sync_client"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_URL")
+}
+
+model AdditionalDocument {
+  id                   String  @id @default(dbgenerated("concat('addoc_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  invoice_id           String
+  document_id          String?
+  document_scheme      String?
+  document_uri         String?
+  document_code        String?
+  document_description String?
+  document_filename    String?
+  document_mime_code   String?
+  document_content     String?
+  invoice              Invoice @relation("additional_documents__invoices", fields: [invoice_id], references: [id], onDelete: Cascade)
+
+  @@map("additional_documents")
+}
+
+model BankDetail {
+  id                  String  @id @default(dbgenerated("concat('bank_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  invoice_id          String
+  payment_method_code String?
+  iban                String?
+  bic                 String?
+  account_name        String?
+  bank_name           String?
+  invoice             Invoice @relation("bank_details__invoices", fields: [invoice_id], references: [id], onDelete: Cascade)
+
+  @@map("bank_details")
+}
+
+model Company {
+  id                        String    @id @default(dbgenerated("concat('comp_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  invoice_id                String
+  name                      String?
+  description               String?
+  trading_name              String?
+  address_line              String?
+  address_line2             String?
+  address_line3             String?
+  city                      String?
+  zip                       String?
+  sub_country               String?
+  country                   String?
+  vat_id                    String?
+  tax_id                    String?
+  party_endpoint_id         String?
+  party_endpoint_schema     String?
+  legal_registration_id     String?
+  legal_registration_scheme String?
+  party_id                  String?
+  party_scheme              String?
+  contact_name              String?
+  contact_phone             String?
+  contact_email             String?
+  supplier_id               String?
+  invoice                   Invoice   @relation("companies__invoices", fields: [invoice_id], references: [id], onDelete: Cascade)
+  supplier                  Supplier? @relation("companies__suppliers", fields: [supplier_id], references: [id])
+
+  @@index([name, vat_id, tax_id])
+  @@map("companies")
+}
+
+model Customer {
+  id                        String  @id @default(dbgenerated("concat('cust_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  invoice_id                String
+  name                      String?
+  description               String?
+  trading_name              String?
+  address_line              String?
+  address_line2             String?
+  address_line3             String?
+  city                      String?
+  zip                       String?
+  sub_country               String?
+  country                   String?
+  vat_id                    String?
+  party_endpoint_id         String?
+  party_endpoint_scheme     String?
+  legal_registration_id     String?
+  legal_registration_schema String?
+  party_id                  String?
+  party_id_schema           String?
+  contact_name              String?
+  contact_phone             String?
+  contact_email             String?
+  invoice                   Invoice @relation("customers__invoices", fields: [invoice_id], references: [id], onDelete: Cascade)
+
+  @@map("customers")
+}
+
+model Delivery {
+  id            String    @id @default(dbgenerated("concat('deliv_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  invoice_id    String
+  party_name    String?
+  party_id      String?
+  party_scheme  String?
+  address_line  String?
+  address_line2 String?
+  address_line3 String?
+  city          String?
+  zip           String?
+  sub_country   String?
+  country       String?
+  date          DateTime? @db.Timestamptz(6)
+  invoice       Invoice   @relation("deliveries__invoices", fields: [invoice_id], references: [id], onDelete: Cascade)
+
+  @@map("deliveries")
+}
+
+model Document {
+  id                       String                  @id @default(dbgenerated("concat('doc_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  created_at               DateTime                @default(now()) @db.Timestamptz(6)
+  user_id                  String?
+  organization_id          String?
+  channel_name             String?
+  content_type             String?
+  filename                 String?
+  invoice_format           String?
+  receiver_email_address   String?
+  sender_email_address     String?
+  object_path              String?
+  document_receivement_id  String?
+  document_processing_jobs DocumentProcessingJob[]
+  document_receivement     DocumentReceivement?    @relation("documents__document_receivements", fields: [document_receivement_id], references: [id])
+  organization             Organization?           @relation("documents__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
+  invoices                 Invoice[]               @relation("invoices__documents")
+
+  @@map("documents")
+}
+
+model DocumentReceivement {
+  id              String        @id @default(dbgenerated("concat('docrec_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  organization_id String?
+  received_at     DateTime      @db.Timestamptz(6)
+  source          ImportSource
+  sender          String?
+  receiver        String?
+  reference_id    String?
+  metadata        Json?
+  email_subject   String?
+  email_body      String?
+  organization    Organization? @relation("document_receivements__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
+  documents       Document[]    @relation("documents__document_receivements")
+
+  @@map("document_receivements")
+}
+
+model Invoice {
+  id                          String               @id @default(dbgenerated("concat('inv_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  created_at                  DateTime             @default(now()) @db.Timestamptz(6)
+  organization_id             String?
+  document_id                 String?
+  invoice_number              String?
+  issue_date                  DateTime?            @db.Timestamptz(6)
+  due_date                    DateTime?            @db.Timestamptz(6)
+  type_code                   String?              @db.VarChar(3)
+  payment_terms               String?
+  payment_description         String?
+  accounting_cost             String?
+  period_start_date           DateTime?            @db.Timestamptz(6)
+  period_end_date             DateTime?            @db.Timestamptz(6)
+  buyer_reference             String?
+  order_reference             String?
+  contract_reference          String?
+  project_reference           String?
+  sales_order_reference       String?
+  award_reference             String?
+  despatch_advice_reference   String?
+  receipt_advice_reference    String?
+  payee_reference             String?
+  mandate_reference           String?
+  currency_code               String?              @db.VarChar(3)
+  model                       String?
+  confidence                  Float?
+  duplicate_invoice_id        String?
+  is_einvoice                 Boolean?
+  archived_at                 DateTime?            @db.Timestamptz(6)
+  invoice_type                InvoiceType?
+  tenant_id                   String?
+  additional_order_references String[]
+  additional_documents        AdditionalDocument[] @relation("additional_documents__invoices")
+  bank_details                BankDetail[]         @relation("bank_details__invoices")
+  companies                   Company[]            @relation("companies__invoices")
+  customers                   Customer[]           @relation("customers__invoices")
+  deliveries                  Delivery[]           @relation("deliveries__invoices")
+  document                    Document?            @relation("invoices__documents", fields: [document_id], references: [id], onDelete: Cascade)
+  organization                Organization?        @relation("invoices__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
+  tenant                      OrganizationTenant?  @relation("invoices__organization_tenants", fields: [tenant_id], references: [id])
+  items                       Item[]               @relation("items__invoices")
+  notifications               Notification[]       @relation("notifications__invoices")
+  payees                      Payee[]              @relation("payees__invoices")
+  preceding_invoices          PrecedingInvoice[]   @relation("preceding_invoices__invoices")
+  tax_agents                  TaxAgent[]           @relation("tax_agents__invoices")
+  taxes                       Tax[]                @relation("taxes__invoices")
+
+  @@index([invoice_number])
+  @@map("invoices")
+}
+
+model Item {
+  id                        String    @id @default(dbgenerated("concat('item_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  invoice_id                String
+  subtotal                  Float?
+  position                  Int?
+  note                      String?
+  name                      String?
+  description               String?
+  quantity                  Float?
+  unit_code                 String?
+  base_quantity             Float?
+  base_unit_code            String?
+  price                     Float?
+  gross_price               Float?
+  gross_diff                Float?
+  gross_diff_sign           String?
+  seller_id                 String?
+  standard_id               String?
+  standard_scheme           String?
+  buyer_id                  String?
+  order_position_reference  String?
+  document_reference        String?
+  document_reference_scheme String?
+  document_reference_code   String?
+  tax_percent               Float?
+  tax_code                  String?
+  tax_scheme                String?
+  accounting_cost           String?
+  invoice_period_start      DateTime? @db.Timestamptz(6)
+  invoice_period_end        DateTime? @db.Timestamptz(6)
+  origin_country            String?
+  gross_subtotal            Float?
+  invoice                   Invoice   @relation("items__invoices", fields: [invoice_id], references: [id], onDelete: Cascade)
+
+  @@map("items")
+}
+
+model Notification {
+  id                      String                  @id @default(dbgenerated("concat('notifrc_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  created_at              DateTime                @default(now())
+  deleted_at              DateTime?
+  invoice_id              String?
+  organization_id         String?
+  type                    NotificationType?
+  title                   String
+  message                 String
+  created_by              String
+  metadata                Json?                   @default("{}")
+  notification_recipients NotificationRecipient[] @relation("notification_recipients__notifications")
+  invoice                 Invoice?                @relation("notifications__invoices", fields: [invoice_id], references: [id], onDelete: Cascade)
+  organization            Organization?           @relation("notifications__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@index([created_at, invoice_id, type])
+  @@map("notifications")
+}
+
+model NotificationRecipient {
+  id              String        @id @default(dbgenerated("concat('notifrec_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  created_at      DateTime      @default(now())
+  read_at         DateTime?
+  notification_id String?
+  user_id         String?
+  notification    Notification? @relation("notification_recipients__notifications", fields: [notification_id], references: [id], onDelete: Cascade)
+
+  @@index([notification_id, user_id])
+  @@map("notification_recipients")
+}
+
+model Organization {
+  id                             String                   @id @default(dbgenerated("concat('org_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  created_at                     DateTime                 @default(now()) @db.Timestamptz(6)
+  name                           String?
+  export_type                    String?
+  export_conf                    Json?
+  import_email                   String?
+  organization_group_id          String?
+  tax_id                         String?
+  vat_id                         String?
+  default_organization_tenant_id String?
+  document_receivements          DocumentReceivement[]    @relation("document_receivements__organizations")
+  documents                      Document[]               @relation("documents__organizations")
+  invocies                       Invoice[]                @relation("invoices__organizations")
+  notifications                  Notification[]           @relation("notifications__organizations")
+  organization_bank_details      OrganizationBankDetail[] @relation("organization_bank_details__organizations")
+  organization_configs           OrganizationConfigs[]    @relation("organization_configs__organizations")
+  organization_prompts           OrganizationPrompts[]    @relation("organization_prompts__organizations")
+  organization_tenants           OrganizationTenant[]     @relation("organization_tenants__organizations")
+  default_organization_tenant    OrganizationTenant?      @relation("organizations__organization_tenants", fields: [default_organization_tenant_id], references: [id])
+  organization_group             OrganizationGroup?       @relation("organizations__organization_groups", fields: [organization_group_id], references: [id], onDelete: Cascade)
+  suppliers                      OrganizationOnSupplier[] @relation("organization_on_suppliers__organizations")
+  supplier_bank_addresses        SupplierBankAddresse[]   @relation("supplier_bank_addresses__organizations")
+
+  @@map("organizations")
+}
+
+model OrganizationBankDetail {
+  id              String        @id @default(dbgenerated("concat('org_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  organization_id String?
+  description     String?
+  iban            String?
+  bic             String?
+  organization    Organization? @relation("organization_bank_details__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@map("organization_bank_details")
+}
+
+model OrganizationConfigs {
+  id              String        @id @default(dbgenerated("concat('orgcnf_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  organization_id String?
+  key             String
+  value           Json?
+  updated_at      DateTime?     @db.Timestamptz(6)
+  organization    Organization? @relation("organization_configs__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@unique([organization_id, key])
+  @@map("organization_configs")
+}
+
+model OrganizationPrompts {
+  id              String        @id @default(dbgenerated("concat('orgpmt_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  organization_id String?
+  key             String
+  value           Json?
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?     @db.Timestamptz(6)
+  organization    Organization? @relation("organization_prompts__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@unique([organization_id, key])
+  @@map("organization_prompts")
+}
+
+model OrganizationGroup {
+  id            String         @id @default(dbgenerated("concat('orggrp_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  created_at    DateTime       @default(now()) @db.Timestamptz(6)
+  name          String
+  public_key    Bytes?
+  organizations Organization[] @relation("organizations__organization_groups")
+  suppliers     Supplier[]     @relation("suppliers__organization_groups")
+
+  @@map("organization_groups")
+}
+
+model OrganizationOnSupplier {
+  id              String        @id @default(dbgenerated("concat('orgsup_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  organization_id String?
+  supplier_id     String?
+  organization    Organization? @relation("organization_on_suppliers__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
+  supplier        Supplier?     @relation("organization_on_suppliers__suppliers", fields: [supplier_id], references: [id], onDelete: Cascade)
+
+  @@index([organization_id, supplier_id], map: "idx_organizations_on_suppliers_org_supplier")
+  @@map("organizations_on_suppliers")
+}
+
+model OrganizationTenant {
+  id                    String         @id @default(dbgenerated("concat('orgten_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  organization_id       String
+  tenant_id             String
+  name                  String?
+  vat_id                String?
+  tax_id                String?
+  address_line          String?
+  address_line2         String?
+  address_line3         String?
+  city                  String?
+  country               String?
+  sub_country           String?
+  zip                   String?
+  contact_email         String?
+  contact_name          String?
+  contact_phone         String?
+  updated_at            DateTime?      @db.Timestamptz(6)
+  invoices              Invoice[]      @relation("invoices__organization_tenants")
+  organization          Organization   @relation("organization_tenants__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
+  default_organizations Organization[] @relation("organizations__organization_tenants")
+
+  @@index([tenant_id])
+  @@map("organization_tenants")
+}
+
+model Payee {
+  id                        String  @id @default(dbgenerated("concat('payee_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  invoice_id                String
+  name                      String?
+  party_id                  String?
+  party_scheme              String?
+  legal_registration_id     String?
+  legal_registration_scheme String?
+  invoice                   Invoice @relation("payees__invoices", fields: [invoice_id], references: [id], onDelete: Cascade)
+
+  @@map("payees")
+}
+
+model PrecedingInvoice {
+  id             String    @id @default(dbgenerated("concat('preinv_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  invoice_id     String
+  invoice_number String?
+  invoice_date   DateTime? @db.Timestamptz(6)
+  invoice        Invoice   @relation("preceding_invoices__invoices", fields: [invoice_id], references: [id], onDelete: Cascade)
+
+  @@map("preceding_invoices")
+}
+
+model Supplier {
+  id                    String                   @id @default(dbgenerated("concat('sup_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  created_at            DateTime                 @default(now()) @db.Timestamptz(6)
+  supplier_id           String
+  name                  String
+  vat_id                String?
+  tax_id                String?
+  organization_group_id String?
+  company_id            String?
+  external_id           String?
+  companies             Company[]                @relation("companies__suppliers")
+  organizations         OrganizationOnSupplier[] @relation("organization_on_suppliers__suppliers")
+  organization_group    OrganizationGroup?       @relation("suppliers__organization_groups", fields: [organization_group_id], references: [id], onDelete: Cascade)
+
+  @@unique([external_id, organization_group_id])
+  @@unique([supplier_id, organization_group_id])
+  @@index([name])
+  @@index([organization_group_id], map: "idx_suppliers_organization_group_id")
+  @@map("suppliers")
+}
+
+model Tax {
+  id                        String  @id @default(dbgenerated("concat('tax_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  invoice_id                String
+  taxable_amount            Float?
+  tax_amount                Float?
+  tax_percent               Float?
+  tax_code                  String?
+  tax_scheme                String?
+  tax_exemption_reason      String?
+  tax_exemption_reason_code String?
+  invoice                   Invoice @relation("taxes__invoices", fields: [invoice_id], references: [id], onDelete: Cascade)
+
+  @@map("taxes")
+}
+
+model TaxAgent {
+  id            String  @id @default(dbgenerated("concat('taxagt_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  invoice_id    String
+  name          String?
+  vat_id        String?
+  address_line  String?
+  address_line2 String?
+  address_line3 String?
+  city          String?
+  zip           String?
+  sub_country   String?
+  country       String?
+  invoice       Invoice @relation("tax_agents__invoices", fields: [invoice_id], references: [id], onDelete: Cascade)
+
+  @@map("tax_agents")
+}
+
+model Total {
+  id                    String @id @default(dbgenerated("concat('total_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  invoice_id            String
+  invoice_item_subtotal Float?
+  invoice_subtotal      Float?
+  invoice_total         Float?
+  invoice_discount      Float?
+  invoice_charge        Float?
+  invoice_paid          Float?
+  invoice_round         Float?
+  invoice_balance       Float?
+  invoice_tax_total     Float?
+
+  @@map("totals")
+}
+
+model SupplierBankAddresse {
+  id              String       @id(map: "pk_supplier_bank_addresses") @default(dbgenerated("concat('sba_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  tenant_id       String
+  supplier_id     String
+  supplier_name   String?
+  bank_name       String?
+  iban            String?
+  bic             String?
+  is_default      Boolean?     @default(false)
+  blocked_for_use Boolean?     @default(false)
+  created_at      DateTime     @default(now()) @db.Timestamp(6)
+  updated_at      DateTime     @default(now()) @db.Timestamp(6)
+  way_id          String?
+  address_id      String?
+  external_id     String?
+  organization_id String
+  organization    Organization @relation("supplier_bank_addresses__organizations", fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@unique([external_id, organization_id])
+  @@unique([tenant_id, supplier_id, address_id, organization_id])
+  @@index([supplier_id], map: "idx_supplier_bank_addresses_supplier_id")
+  @@index([tenant_id], map: "idx_supplier_bank_addresses_tenant_id")
+  @@index([tenant_id, supplier_id], map: "idx_supplier_bank_addresses_tenant_supplier")
+  @@map("supplier_bank_addresses")
+}
+
+model DocumentProcessingJob {
+  id                String            @id @default(dbgenerated("concat('dpj_', \"left\"(translate(encode(public.gen_random_bytes(((26 * 2) + 10)), 'base64'::text), '/+'::text, ''::text), 26))"))
+  created_at        DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime          @default(now()) @db.Timestamptz(6)
+  document_id       String
+  job_type          DocumentJobType
+  external_job_id   String?
+  status            DocumentJobStatus @default(PENDING)
+  model             String?
+  started_at        DateTime?         @db.Timestamptz(6)
+  completed_at      DateTime?         @db.Timestamptz(6)
+  failed_at         DateTime?         @db.Timestamptz(6)
+  result_data       Json?
+  error_message     String?
+  error_details     Json?
+  webhook_metadata  Json?
+  processing_config Json?
+  retry_count       Int               @default(0)
+  max_retries       Int               @default(3)
+  request_config    Json?
+  parse_result      Json?
+  documents         Document          @relation(fields: [document_id], references: [id], onDelete: Cascade)
+
+  @@index([document_id, job_type])
+  @@index([external_job_id])
+  @@index([status, created_at])
+  @@map("document_processing_jobs")
+}
+
+view user_notifications {
+  id              String?
+  type            NotificationType?
+  title           String?
+  message         String?
+  invoice_id      String?
+  created_by      String?
+  created_at      DateTime?
+  metadata        Json?
+  read_at         DateTime?
+  user_id         String?
+  organization_id String?
+
+  @@ignore
+}
+
+enum InvoiceExportStatus {
+  PENDING
+  TRIGGERED
+  EXPORTED
+  RETRIEVED
+  FAILED
+}
+
+enum InvoiceExportMessage {
+  ERROR_SUPPLIER_MISSING
+  ERROR_TENANT_MISSING
+  ERROR_UNKNOWN
+  ERROR_INVOICE_NUMBER_MISSING
+  ERROR_DUPLICATE_INVOICE
+}
+
+enum ImportSource {
+  EMAIL
+  API
+  MANUAL
+  SFTP
+}
+
+enum InvoiceType {
+  PAPER
+  XRECHNUNG
+  ZUGFERD
+}
+
+enum NotificationType {
+  mention
+  invoice_update
+  invoice_comment
+  approval_request
+  approval_status
+  document_share
+}
+
+enum DocumentJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  RETRYING
+  COMPLETED_NOT_INVOICE
+}
+
+enum DocumentJobType {
+  PARSE
+  EXTRACT
+}
