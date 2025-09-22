@@ -23,14 +23,16 @@ export class IfsSyncController {
 
       // Emit sync event if successful
       if (result.success && data?.rowkey) {
-        this.syncEventService.emitSyncEvent({
+        this.syncEventService.performDatabaseSync({
           organizationId,
           tableName: table,
           rowkey: data.rowkey,
           operation: action,
           timestamp: new Date(),
-          data,
-          previousData: (result as any).previousData
+          data : {
+            ...result.data,
+            ...data
+          }
         });
       }
 
@@ -40,10 +42,9 @@ export class IfsSyncController {
       // Remove error field and previousData before sending to client
       const clientResponse = { ...result };
       delete clientResponse.error;
-      delete (clientResponse as any).previousData;
+      delete clientResponse.data;
 
       res.status(200).json(clientResponse);
-
     } catch (error) {
       const result: IfsResponse = {
         message: 'Internal server error',
@@ -52,7 +53,6 @@ export class IfsSyncController {
       };
       this.logRequest(req, result, startTime);
 
-      // Remove error field before sending to client
       const clientResponse = { ...result };
       delete clientResponse.error;
 

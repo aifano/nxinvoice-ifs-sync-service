@@ -12,7 +12,6 @@ model IFS_Supplier {
   id                        String        @id @default(dbgenerated("concat('ifs_sup_', gen_random_uuid())"))
   created_at                DateTime      @default(now()) @db.Timestamptz(6)
   updated_at                DateTime?     @db.Timestamptz(6)
-  synchronized_at           DateTime?     @db.Timestamptz(6)
   organization_id           String?
   association_no            String?
   b2b_supplier              String?
@@ -44,7 +43,6 @@ model IFS_Payment_Address {
   id                      String        @id @default(dbgenerated("concat('ifs_pay_', gen_random_uuid())"))
   created_at              DateTime      @default(now()) @db.Timestamptz(6)
   updated_at              DateTime?     @db.Timestamptz(6)
-  synchronized_at         DateTime?     @db.Timestamptz(6)
   organization_id         String?
   account                 String?
   address_id              String?
@@ -111,7 +109,6 @@ model IFS_Supplier_Document_Tax {
   id                     String        @id @default(dbgenerated("concat('ifs_tax_', gen_random_uuid())"))
   created_at             DateTime      @default(now()) @db.Timestamptz(6)
   updated_at             DateTime?     @db.Timestamptz(6)
-  synchronized_at        DateTime?     @db.Timestamptz(6)
   organization_id        String?
   address_id             String?
   company                String?

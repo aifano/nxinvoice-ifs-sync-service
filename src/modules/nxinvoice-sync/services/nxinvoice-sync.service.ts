@@ -11,18 +11,41 @@ export class NxinvoiceSyncService {
   }
 
   // Supplier operations
-  async upsertSupplier(organizationId: string, rowkey: string, previousData?: any, changes?: any): Promise<void> {
+  async upsertSupplier(organizationId: string, rowkey: string, changes: any): Promise<void> {
     try {
       const supplier = await this.nxinvoiceSyncPrismaClient.supplier.findFirst({
         where: {
           organization_group_id: organizationId,
-          supplier_id: changes.supplier_id
+          OR: [
+            {
+              supplier_id: changes?.supplier_id
+            },
+            {
+              external_id: changes?.rowkey
+            }
+          ]
         }
       });
 
       if (!supplier) {
-        console.log(`NXInvoice - Supplier not found for upsert: ${organizationId}/${rowkey}`);
+        await this.nxinvoiceSyncPrismaClient.supplier.create({
+          data: {
+            supplier_id: changes?.supplier_id,
+            organization_group_id: organizationId,
+            external_id: changes?.rowkey,
+
+            name: changes?.name,
+            vat_id: changes?.association_no,
+            tax_id: changes?.association_no
+          }
+        });
         return;
+      }
+
+      const data = {} as {[key: string]: string};
+      if (!supplier.vat_id && changes?.association_no) {
+        data.tax_id = changes?.association_no;
+        data.vat_id = changes?.association_no;
       }
 
       await this.nxinvoiceSyncPrismaClient.supplier.update({
@@ -30,7 +53,8 @@ export class NxinvoiceSyncService {
           id: supplier.id
         },
         data: {
-          name: changes.name
+          ...data,
+          name: changes?.name
         }
       });
     } catch (error) {
@@ -39,12 +63,19 @@ export class NxinvoiceSyncService {
     }
   }
 
-  async deleteSupplier(organizationId: string, rowkey: string, previousData?: any, changes?: any): Promise<void> {
+  async deleteSupplier(organizationId: string, rowkey: string, changes?: any): Promise<void> {
     try {
       const supplier = await this.nxinvoiceSyncPrismaClient.supplier.findFirst({
         where: {
           organization_group_id: organizationId,
-          supplier_id: previousData.supplier_id
+          OR: [
+            {
+              supplier_id: changes?.supplier_id
+            },
+            {
+              external_id: changes?.rowkey
+            }
+          ]
         }
       });
 
@@ -65,17 +96,40 @@ export class NxinvoiceSyncService {
   }
 
   // Payment operations
-  async upsertPayment(organizationId: string, rowkey: string, previousData?: any, changes?: any): Promise<void> {
+  async upsertPayment(organizationId: string, rowkey: string, changes?: any): Promise<void> {
     try {
       const payment = await this.nxinvoiceSyncPrismaClient.supplierBankAddresse.findFirst({
         where: {
           organization_id: organizationId,
-          supplier_id: previousData.identity
+          OR: [
+            {
+              supplier_id: changes?.identity
+            },
+            {
+              external_id: changes?.rowkey
+            }
+          ]
         }
       });
 
       if (!payment) {
-        console.log(`NXInvoice - Payment not found for upsert: ${organizationId}/${rowkey}`);
+        await this.nxinvoiceSyncPrismaClient.supplierBankAddresse.create({
+          data: {
+            organization_id: organizationId,
+            supplier_id: changes?.identity,
+            external_id: changes?.rowkey,
+
+            tenant_id: changes?.tenant_id || '',
+            supplier_name: changes?.supplier_name,
+            bank_name: changes?.bank_name,
+            iban: changes?.account,
+            bic: changes?.bic_code,
+            is_default: changes?.default_address === '1',
+            blocked_for_use: changes?.blocked_for_use === '1',
+            way_id: changes?.way_id,
+            address_id: changes?.address_id
+          }
+        });
         return;
       }
 
@@ -84,15 +138,15 @@ export class NxinvoiceSyncService {
           id: payment.id
         },
         data: {
-          tenant_id: changes.tenant_id,
-          supplier_name: changes.data10,
-          bank_name: changes.description,
-          iban: changes.account,
-          bic: changes.bic_code,
-          is_default: changes.default_address === '1',
-          blocked_for_use: changes.blocked_for_use === '1',
-          way_id: changes.way_id,
-          address_id: changes.address_id
+          tenant_id: changes?.tenant_id || '',
+          supplier_name: changes?.supplier_name,
+          bank_name: changes?.bank_name,
+          iban: changes?.account,
+          bic: changes?.bic_code,
+          is_default: changes?.default_address === '1',
+          blocked_for_use: changes?.blocked_for_use === '1',
+          way_id: changes?.way_id,
+          address_id: changes?.address_id
         }
       });
     } catch (error) {
@@ -101,12 +155,19 @@ export class NxinvoiceSyncService {
     }
   }
 
-  async deletePayment(organizationId: string, rowkey: string, previousData?: any, changes?: any): Promise<void> {
+  async deletePayment(organizationId: string, rowkey: string, changes?: any): Promise<void> {
     try {
       const payment = await this.nxinvoiceSyncPrismaClient.supplierBankAddresse.findFirst({
         where: {
           organization_id: organizationId,
-          supplier_id: previousData.identity
+          OR: [
+            {
+              supplier_id: changes?.identity
+            },
+            {
+              external_id: changes?.rowkey
+            }
+          ]
         }
       });
 
@@ -127,36 +188,33 @@ export class NxinvoiceSyncService {
   }
 
   // Tax operations
-  async upsertTax(organizationId: string, rowkey: string, previousData?: any, changes?: any): Promise<void> {
+  async upsertTax(organizationId: string, rowkey: string, changes?: any): Promise<void> {
     try {
       const supplier = await this.nxinvoiceSyncPrismaClient.supplier.findFirst({
         where: {
           organization_group_id: organizationId,
-          supplier_id: previousData.supplier_id
+          OR: [
+            {
+              supplier_id: changes?.supplier_id
+            },
+            {
+              external_id: changes?.rowkey
+            }
+          ]
         }
       });
 
       if (!supplier) {
-        console.log(`NXInvoice - Supplier not found for tax delete: ${organizationId}/${rowkey}`);
         return;
       }
-
-      const tax = await this.ifsSyncPrismaClient.iFS_Supplier_Document_Tax.findFirst({
-        where: {
-          organization_id: organizationId,
-          supplier_id: supplier.id
-        },
-        orderBy: {
-          updated_at: 'desc'
-        }
-      });
 
       await this.nxinvoiceSyncPrismaClient.supplier.update({
         where: {
           id: supplier.id
         },
         data: {
-          tax_id: tax?.vat_no ? tax.vat_no : null
+          tax_id: changes?.tax_id,
+          vat_id: changes?.vat_id
         }
       });
     } catch (error) {
@@ -165,12 +223,19 @@ export class NxinvoiceSyncService {
     }
   }
 
-  async deleteTax(organizationId: string, rowkey: string, previousData?: any, changes?: any): Promise<void> {
+  async deleteTax(organizationId: string, rowkey: string, changes?: any): Promise<void> {
     try {
       const supplier = await this.nxinvoiceSyncPrismaClient.supplier.findFirst({
         where: {
           organization_group_id: organizationId,
-          supplier_id: previousData.supplier_id
+          OR: [
+            {
+              supplier_id: changes.supplier_id
+            },
+            {
+              external_id: changes.rowkey
+            }
+          ]
         }
       });
 
@@ -182,7 +247,7 @@ export class NxinvoiceSyncService {
       const tax = await this.ifsSyncPrismaClient.iFS_Supplier_Document_Tax.findFirst({
         where: {
           organization_id: organizationId,
-          supplier_id: supplier.id
+          supplier_id: changes.supplier_id
         },
         orderBy: {
           updated_at: 'desc'
@@ -194,7 +259,8 @@ export class NxinvoiceSyncService {
           id: supplier.id
         },
         data: {
-          tax_id: tax?.vat_no ? tax.vat_no : null
+          tax_id: tax?.vat_no || null,
+          vat_id: tax?.vat_no || null
         }
       });
     } catch (error) {

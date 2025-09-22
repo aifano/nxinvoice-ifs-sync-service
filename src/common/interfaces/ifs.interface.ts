@@ -25,5 +25,4 @@ export interface SyncEvent {
   operation: string; // Any operation
   timestamp: Date;
   data?: Record<string, any>;
-  previousData?: Record<string, any>; // Data before the operation
 }

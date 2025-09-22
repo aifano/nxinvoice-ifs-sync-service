@@ -8,7 +8,7 @@ export class IfsSyncService {
     this.prisma = new IfsSyncPrismaClient();
   }
 
-  async processData(table: string, action: string, data: any, organizationId: string): Promise<IfsResponse & { previousData?: any }> {
+  async processData(table: string, action: string, data: any, organizationId: string): Promise<IfsResponse & { data?: any }> {
     try {
       // Validate rowkey is present for all operations
       if (!data?.rowkey || typeof data.rowkey !== 'string' || data.rowkey.trim() === '') {
@@ -18,16 +18,21 @@ export class IfsSyncService {
         };
       }
 
-      // Read existing data before performing any operation
-      const previousData = await this.readExistingData(table, organizationId, data.rowkey);
+      const existingData = await this.readExistingData(table, organizationId, data.rowkey);
 
       if (action === 'delete') {
         const result = await this.deleteRecord(table, data, organizationId);
-        return { ...result, previousData };
+        return {
+          ...result,
+          data: existingData
+        };
       } else if (action === 'upsert' || action === 'insert' || action === 'update') {
         // All other actions (upsert, insert, update) use upsert logic
         const result = await this.upsertRecord(table, data, organizationId);
-        return { ...result, previousData };
+        return {
+          ...result,
+          data: existingData
+        };
       } else {
         return {
           message: 'Unsupported action',
@@ -64,6 +69,7 @@ export class IfsSyncService {
           recordData = this.filterValidFields(recordData, 'payment');
           return await this.performUpsert((this.prisma as any).iFS_Payment_Address, recordData, organizationId, data.rowkey);
         case 'supplier_document_tax_info_tab':
+          recordData = this.mapSupplierDocumentTaxInfo(recordData);
           recordData = this.filterValidFields(recordData, 'tax');
           return await this.performUpsert((this.prisma as any).iFS_Supplier_Document_Tax, recordData, organizationId, data.rowkey);
         default:
@@ -176,6 +182,23 @@ export class IfsSyncService {
     if (mappedData.bank_name !== undefined) {
       mappedData.description = mappedData.bank_name;
       delete mappedData.bank_name;
+    }
+
+    return mappedData;
+  }
+
+  // Field mapping for supplier_document_tax_info
+  private mapSupplierDocumentTaxInfo(data: any): any {
+    const mappedData = { ...data };
+
+    // Map back to original field names
+    if (mappedData.vat_id !== undefined) {
+      mappedData.vat_no = mappedData.vat_id;
+      delete mappedData.vat_id;
+    }
+    if (mappedData.tax_id !== undefined) {
+      mappedData.vat_no = mappedData.tax_id;
+      delete mappedData.tax_id;
     }
 
     return mappedData;
