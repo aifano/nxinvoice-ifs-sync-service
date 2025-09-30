@@ -11,7 +11,8 @@ RUN npm install
 
 # Copy the prisma schema and generate the client
 COPY prisma ./prisma
-RUN npx prisma generate
+RUN npx prisma generate --schema=./prisma/public.prisma
+RUN npx prisma generate --schema=./prisma/nxinvoice_ifs.prisma
 
 # After installing the dependencies, we need to copy the src folder from our local file into the base image
 COPY src ./src

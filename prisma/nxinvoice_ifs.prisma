@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/@prisma/ifs_sync_client"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("NXINVOICE_IFS_POSTGRES_URL")
+}
+
+model IFS_Supplier {
+  id                        String        @id @default(dbgenerated("concat('ifs_sup_', gen_random_uuid())"))
+  created_at                DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime?     @db.Timestamptz(6)
+  organization_id           String?
+  association_no            String?
+  b2b_supplier              String?
+  corporate_form            String?
+  country                   String?
+  creation_date             String?
+  default_domain            String?
+  default_language          String?
+  identifier_ref_validation String?
+  identifier_reference      String?
+  name                      String?
+  one_time                  String?
+  party                     String?
+  party_type                String?
+  picture_id                String?
+  rowkey                    String?
+  rowtype                   String?
+  rowversion                String?
+  supplier_category         String?
+  supplier_id               String?
+  suppliers_own_id          String?
+  text_id                   String?
+
+  @@unique([organization_id, rowkey])
+  @@map("ifs_supplier_info_tab")
+}
+
+model IFS_Payment_Address {
+  id                      String        @id @default(dbgenerated("concat('ifs_pay_', gen_random_uuid())"))
+  created_at              DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime?     @db.Timestamptz(6)
+  organization_id         String?
+  account                 String?
+  address_id              String?
+  bank_account_valid_date String?
+  bank_account_validated  String?
+  bic_code                String?
+  blocked_for_use         String?
+  company                 String?
+  data1                   String?
+  data10                  String?
+  data11                  String?
+  data12                  String?
+  data13                  String?
+  data14                  String?
+  data15                  String?
+  data16                  String?
+  data17                  String?
+  data18                  String?
+  data19                  String?
+  data2                   String?
+  data20                  String?
+  data21                  String?
+  data22                  String?
+  data23                  String?
+  data24                  String?
+  data25                  String?
+  data26                  String?
+  data27                  String?
+  data28                  String?
+  data29                  String?
+  data3                   String?
+  data30                  String?
+  data31                  String?
+  data32                  String?
+  data33                  String?
+  data34                  String?
+  data35                  String?
+  data36                  String?
+  data37                  String?
+  data38                  String?
+  data39                  String?
+  data4                   String?
+  data40                  String?
+  data41                  String?
+  data5                   String?
+  data6                   String?
+  data7                   String?
+  data8                   String?
+  data9                   String?
+  default_address         String?
+  description             String?
+  identity                String?
+  mapping_type            String?
+  party_type              String?
+  rowkey                  String?
+  rowversion              String?
+  way_id                  String?
+
+  @@unique([organization_id, rowkey])
+  @@map("ifs_payment_address_tab")
+}
+
+model IFS_Supplier_Document_Tax {
+  id                     String        @id @default(dbgenerated("concat('ifs_tax_', gen_random_uuid())"))
+  created_at             DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime?     @db.Timestamptz(6)
+  organization_id        String?
+  address_id             String?
+  company                String?
+  declaration_date       String?
+  domestic_tax_id_number String?
+  group_tax_id_number    String?
+  last_modify_date       String?
+  reliability_status     String?
+  rowkey                 String?
+  rowversion             String?
+  supplier_id            String?
+  tax_id_no2             String?
+  tax_id_no3             String?
+  tax_id_no4             String?
+  tax_id_no5             String?
+  tax_id_no6             String?
+  tax_id_type            String?
+  tax_office_id          String?
+  validated_date         String?
+  vat_no                 String?
+
+  @@unique([organization_id, rowkey])
+  @@map("ifs_supplier_document_tax_info_tab")
+}

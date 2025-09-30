@@ -1,78 +1,23 @@
 import express from 'express';
-import { PORT } from './utilities/config';
-import { IfsTableSynchronizationService } from './services/ifs-sync-service';
-import { IfsSyncController } from './controllers/ifs-sync-controller';
-import { requireJwt } from './middlewares/jwt';
-import { repairAndParseJSON } from './utilities/json-repair';
+import { AppConfig } from './common/config/app.config';
+import { jwtMiddleware } from './common/middleware/jwt.middleware';
+import { jsonRepairMiddleware } from './common/middleware/json-repair.middleware';
+import { healthRoutes } from './modules/health/health.module';
+import { ifsSyncRoutes } from './modules/ifs-sync/ifs-sync.module';
 
 const app = express();
 
-// Initialize services with simplified dependency injection
-const ifsSynchronizationService = new IfsTableSynchronizationService();
-const ifsSyncController = new IfsSyncController(ifsSynchronizationService);
+// JSON repair middleware (replaces express.json())
+app.use(jsonRepairMiddleware);
 
-// Custom middleware to handle JSON parsing with repair fallback
-app.use((req, res, next) => {
-    if (req.headers['content-type']?.includes('application/json')) {
-        let body = '';
-        req.on('data', chunk => {
-            body += chunk.toString();
-        });
-        req.on('end', () => {
-            try {
-                // First try normal JSON parsing
-                req.body = JSON.parse(body);
-                next();
-            } catch (error) {
-                console.log('JSON parse failed, attempting repair...', error);
-                console.log('Raw body:', body);
+// Health check routes (no JWT required)
+app.use('/', healthRoutes);
 
-                // Try to repair and parse the JSON
-                const repairResult = repairAndParseJSON(body);
+// Apply JWT middleware to all other routes
+app.use(jwtMiddleware);
 
-                if (repairResult.success) {
-                    console.log('JSON repair successful!');
-                    console.log('Repaired JSON:', JSON.stringify(repairResult.data, null, 2));
-                    req.body = repairResult.data;
-                    next();
-                } else {
-                    console.error('JSON repair failed:', repairResult.error);
-                    res.status(400).json({
-                        error: "Invalid JSON payload",
-                        details: repairResult.error,
-                        originalBody: body
-                    });
-                }
-            }
-        });
-    } else {
-        next();
-    }
-});
+// IFS Sync routes
+app.use('/', ifsSyncRoutes);
 
-const jsonParsingErrorHandler: express.ErrorRequestHandler = (jsonParsingError, httpRequest, httpResponse, next) => {
-    if (jsonParsingError instanceof SyntaxError && 'body' in jsonParsingError) {
-        console.error('Invalid JSON payload received:', jsonParsingError.message);
-        httpResponse.status(200).json({
-          status: 400,
-          message: 'Invalid JSON payload',
-          success: false
-        });
-        return;
-    }
-    next();
-};
-app.use(jsonParsingErrorHandler);
-app.use(requireJwt);
-
-app.post('/:table', (httpRequest, httpResponse) =>
-    ifsSyncController.handleSynchronizationRequest(httpRequest, httpResponse)
-);
-app.get('/health', (_, httpResponse) => {
-    httpResponse.send('ok');
-});
-
-app.listen(PORT, () => {
-    console.log(`IFS Sync Service started on port ${PORT}`);
-    console.log(`Supported tables: ${ifsSynchronizationService.getSupportedTableNames().join(', ')}`);
-});
+const PORT = AppConfig.port;
+app.listen(PORT, () => console.log(`IFS Sync Service running on port ${PORT}`));
