@@ -165,7 +165,7 @@ export class NxinvoiceSyncService {
       const supplier = await this.nxinvoiceSyncPrismaClient.supplier.findFirst({
         where: {
           organization_group_id: organizationId,
-          external_id: changes?.rowkey,
+          supplier_id: changes?.supplier_id,
         }
       });
 
@@ -193,7 +193,7 @@ export class NxinvoiceSyncService {
       const supplier = await this.nxinvoiceSyncPrismaClient.supplier.findFirst({
         where: {
           organization_group_id: organizationId,
-          external_id: changes?.rowkey,
+          supplier_id: changes?.supplier_id,
         }
       });
 
