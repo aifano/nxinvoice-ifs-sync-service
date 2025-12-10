@@ -16,14 +16,7 @@ export class NxinvoiceSyncService {
       const supplier = await this.nxinvoiceSyncPrismaClient.supplier.findFirst({
         where: {
           organization_group_id: organizationId,
-          OR: [
-            {
-              supplier_id: changes?.supplier_id
-            },
-            {
-              external_id: changes?.rowkey
-            }
-          ]
+          external_id: changes?.rowkey
         }
       });
 
@@ -68,14 +61,7 @@ export class NxinvoiceSyncService {
       const supplier = await this.nxinvoiceSyncPrismaClient.supplier.findFirst({
         where: {
           organization_group_id: organizationId,
-          OR: [
-            {
-              supplier_id: changes?.supplier_id
-            },
-            {
-              external_id: changes?.rowkey
-            }
-          ]
+          external_id: changes?.rowkey
         }
       });
 
@@ -101,14 +87,7 @@ export class NxinvoiceSyncService {
       const payment = await this.nxinvoiceSyncPrismaClient.supplierBankAddresse.findFirst({
         where: {
           organization_id: organizationId,
-          OR: [
-            {
-              supplier_id: changes?.identity
-            },
-            {
-              external_id: changes?.rowkey
-            }
-          ]
+          external_id: changes?.rowkey,
         }
       });
 
@@ -160,14 +139,7 @@ export class NxinvoiceSyncService {
       const payment = await this.nxinvoiceSyncPrismaClient.supplierBankAddresse.findFirst({
         where: {
           organization_id: organizationId,
-          OR: [
-            {
-              supplier_id: changes?.identity
-            },
-            {
-              external_id: changes?.rowkey
-            }
-          ]
+          external_id: changes?.rowkey,
         }
       });
 
@@ -193,14 +165,7 @@ export class NxinvoiceSyncService {
       const supplier = await this.nxinvoiceSyncPrismaClient.supplier.findFirst({
         where: {
           organization_group_id: organizationId,
-          OR: [
-            {
-              supplier_id: changes?.supplier_id
-            },
-            {
-              external_id: changes?.rowkey
-            }
-          ]
+          external_id: changes?.rowkey,
         }
       });
 
@@ -228,14 +193,7 @@ export class NxinvoiceSyncService {
       const supplier = await this.nxinvoiceSyncPrismaClient.supplier.findFirst({
         where: {
           organization_group_id: organizationId,
-          OR: [
-            {
-              supplier_id: changes.supplier_id
-            },
-            {
-              external_id: changes.rowkey
-            }
-          ]
+          external_id: changes?.rowkey,
         }
       });
 
